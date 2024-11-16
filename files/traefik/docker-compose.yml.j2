@@ -1,0 +1,23 @@
+---
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    pull_policy: always
+    restart: always
+    networks:
+      - traefik-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /run/docker.sock:/run/docker.sock:ro
+      - {{ volume_base_path }}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - {{ volume_base_path }}/traefik/conf.d/:/etc/traefik/conf.d/:ro
+      - {{ volume_base_path }}/traefik/data/certs/:/var/traefik/certs/:rw
+    environment:
+      - CF_DNS_API_TOKEN={{ cf_dns_api_token }}
+networks:
+  traefik-proxy:
+    external: true

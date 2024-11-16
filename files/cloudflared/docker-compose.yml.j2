@@ -1,0 +1,16 @@
+---
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    networks:
+      - traefik-proxy
+    environment:
+      - TUNNEL_TOKEN={{ cf_tunnel_token }}
+    volumes:
+      - {{ volume_base_path }}/cloudflared:/etc/cloudflared
+networks:
+  traefik-proxy:
+    external: true

@@ -1,0 +1,86 @@
+---
+# Playbook: Traefik Reverse Proxy Deployment
+# Description: Deploys and configures Traefik as a reverse proxy using Docker Compose
+#
+# This playbook handles:
+# - Installation and configuration of Traefik reverse proxy
+# - Cloudflare DNS integration
+# - Automatic SSL certificate management
+# - Secure dashboard setup with basic authentication
+#
+# Required Variables (defined in vault.yml):
+# - ansible_user: SSH user for remote access
+# - ansible_become_password: Sudo password for privileged operations
+# - domain_name: Primary domain for the infrastructure (e.g., example.cloud)
+# - local_domain_name: Internal domain name (e.g., internal.home.example.cloud)
+# - cf_dns_api_token: Cloudflare API token for DNS challenge
+# - cf_ssl_email: Email address for Let's Encrypt SSL certificates
+# - traefik_subdomain: Subdomain for Traefik dashboard (e.g., traefik)
+# - traefik_dashboard_basic_auth_users: HTTP basic auth credentials for dashboard
+#
+# Security Notes:
+# - Traefik dashboard is protected with basic authentication
+# - SSL certificates are automatically managed through Let's Encrypt
+# - Cloudflare DNS integration for added security
+#
+# Usage:
+# ansible-playbook -i inventory/hosts.yml playbooks/traefik.yml --vault-password-file password.txt
+
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  vars:
+    service_name: "traefik"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
+    appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
+    volume_base_path: "/home/{{ ansible_user }}/appdata"
+
+  tasks:
+    - name: Stop and remove Traefik container if it exists
+      community.docker.docker_container:
+        name: traefik
+        state: absent
+      ignore_errors: yes
+
+    - name: Ensure necessary directories exist and generate configuration files
+      block:
+        - name: Ensure Docker Compose and volumes directory exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            owner: "{{ ansible_user }}"
+            mode: "0755"
+          loop:
+            - "{{ apps_path }}"
+            - "{{ appdata_path }}"
+            - "{{ appdata_path }}/conf.d"
+
+    - name: Generate Docker Compose configuration
+      template:
+        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        dest: "{{ apps_path }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Generate Traefik dashboard configuration
+      template:
+        src: "../files/{{ service_name }}/volumes/conf.d/traefik-dashboard.yml.j2"
+        dest: "{{ appdata_path }}/conf.d/traefik-dashboard.yml"
+        owner: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Generate Traefik main configuration
+      template:
+        src: "../files/{{ service_name }}/volumes/traefik.yml.j2"
+        dest: "{{ appdata_path }}/traefik.yml"
+        owner: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Start Traefik using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ apps_path }}"
+        files:
+          - docker-compose.yml
+        state: present
+        pull: always

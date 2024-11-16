@@ -1,0 +1,84 @@
+---
+# Playbook: Homer Dashboard Deployment
+# Description: Deploys and configures the Homer dashboard with Traefik integration
+#
+# This playbook handles:
+# - Installation and configuration of the Homer dashboard
+# - Traefik integration for secure HTTPS access
+# - Persistent volume setup for Homer assets
+#
+# Required Variables (defined in vault.yml):
+# - ansible_user: SSH user for remote access
+# - ansible_become_password: Sudo password for privileged operations
+# - domain_name: Primary domain for the infrastructure
+# - local_domain_name: Internal domain name (optional)
+# - homer_subdomain: Subdomain for the Homer dashboard (e.g., 'homer')
+#
+# Exposed Ports:
+# - 30010: HTTP UI (mapped from 8080)
+#
+# Security Notes:
+# - Traefik handles SSL termination
+# - All web traffic is encrypted via HTTPS
+#
+# Usage:
+# ansible-playbook -i inventory/hosts.yml playbooks/homer.yml
+
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  vars:
+    service_name: "homer"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
+    appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
+    volume_base_path: "/home/{{ ansible_user }}/appdata"
+
+  tasks:
+    - name: Verify required variables
+      assert:
+        that:
+          - domain_name is defined
+          - homer_subdomain is defined
+        fail_msg: "Required variables are not defined. Please ensure domain_name and homer_subdomain are set in vault.yml"
+
+    - name: Stop and remove existing Homer container if it exists
+      community.docker.docker_container:
+        name: homer
+        state: absent
+      ignore_errors: yes
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0750"
+      loop:
+        - "{{ apps_path }}"
+        - "{{ appdata_path }}"
+
+    - name: Copy Homer assets
+      copy:
+        src: "../files/{{ service_name }}/volumes/"
+        dest: "{{ appdata_path }}/"
+        owner: "{{ ansible_user }}"
+        mode: "0644"
+        remote_src: no
+
+    - name: Generate Docker Compose configuration
+      template:
+        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        dest: "{{ apps_path }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0640"
+
+    - name: Start Homer using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ apps_path }}"
+        files:
+          - docker-compose.yml
+        state: present
+        pull: always

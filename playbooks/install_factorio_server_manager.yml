@@ -1,0 +1,62 @@
+---
+# Playbook: Factorio Server Manager Deployment
+# Description: Deploys and configures Factorio Server Manager using Docker Compose
+#
+# This playbook handles:
+# - Installation and configuration of Factorio Server Manager (OFSM)
+# - Setup of necessary volumes for saves, mods, and configurations
+# - Management of server ports (web UI and game server)
+#
+# Required Variables (should be in vault.yml):
+# - ansible_user: SSH user for remote access
+# - ansible_become_password: Sudo password for privileged operations
+#
+# Ports Used:
+# - 8888: Web UI
+# - 34197/udp: Game Server
+#
+# Usage:
+# ansible-playbook -i inventory/hosts.yml playbooks/factorio.yml --vault-password-file password.txt
+
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  vars:
+    service_name: "factorio-server-manager"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
+    appdata_path: "/home/{{ ansible_user }}/appdata/factorio-server-manager"
+    volume_base_path: "/home/{{ ansible_user }}/appdata"
+
+    - name: Stop and remove existing Factorio container if it exists
+      community.docker.docker_container:
+        name: factorio-server-manager
+        state: absent
+      ignore_errors: yes
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ apps_path }}"
+        - "{{ appdata_path }}"
+
+    - name: Generate Docker Compose configuration
+      template:
+        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        dest: "{{ apps_path }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Start Factorio Server Manager using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ apps_path }}"
+        files:
+          - docker-compose.yml
+        state: present
+        pull: always

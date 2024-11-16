@@ -1,0 +1,25 @@
+---
+services:
+  homer:
+    image: "b4bz/homer:latest"
+    container_name: homer
+    pull_policy: always
+    ports:
+      - "30010:8080"
+    networks:
+      - traefik-proxy
+    volumes:
+      - {{ volume_base_path }}/homer/assets/:/www/assets
+    environment:
+      - INIT_ASSETS=1
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.homer.rule=Host(`{{ homer_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ homer_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.homer.entrypoints=websecure
+      - traefik.http.routers.homer.tls=true
+      - traefik.http.routers.homer.tls.certresolver=cloudflare
+      - traefik.http.services.homer.loadbalancer.server.port=8080
+networks:
+  traefik-proxy:
+    external: true

@@ -1,0 +1,31 @@
+---
+services:
+  app:
+    image: "portainer/portainer-ce:latest"
+    container_name: portainer
+    pull_policy: always
+    ports:
+      - 30011:9000
+      - 9443:9443
+      - 8010:8000
+    networks:
+      - traefik-proxy
+    volumes:
+      - /run/docker.sock:/var/run/docker.sock:ro
+      - {{ volume_base_path }}/portainer:/data
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.portainer.rule=Host(`{{ portainer_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ portainer_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.portainer.entrypoints=websecure
+      - traefik.http.routers.portainer.tls=true
+      - traefik.http.routers.portainer.tls.certresolver=cloudflare
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  portainer-data:
+    driver: local
+networks:
+  traefik-proxy:
+    external: true

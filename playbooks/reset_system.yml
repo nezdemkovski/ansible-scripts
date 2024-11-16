@@ -1,0 +1,49 @@
+---
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  tasks:
+    - name: Stop and disable qemu-guest-agent
+      systemd:
+        name: qemu-guest-agent
+        enabled: no
+        state: stopped
+
+    - name: Remove qemu-guest-agent
+      apt:
+        name: qemu-guest-agent
+        state: absent
+
+    - name: Remove Docker packages and dependencies
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: absent
+        purge: yes
+
+    - name: Remove Docker GPG key
+      apt_key:
+        id: 0EBFCD88
+        state: absent
+
+    - name: Remove Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+        state: absent
+        filename: docker
+
+    - name: Update apt package list after removing Docker repo
+      apt:
+        update_cache: yes
+
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all apt packages
+      apt:
+        upgrade: dist

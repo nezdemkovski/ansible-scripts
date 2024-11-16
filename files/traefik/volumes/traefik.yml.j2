@@ -1,0 +1,42 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# -- (Optional) Enable API and Dashboard here, don't do in production
+api:
+  dashboard: true
+  disableDashboardAd: true
+  insecure: true # True only when basicAuth enabled
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: :443
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: "{{ cf_ssl_email }}"
+      storage: /var/traefik/certs/cloudflare-acme.json
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik
+    watch: true
+
+experimental:
+  fastProxy: {}

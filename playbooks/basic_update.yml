@@ -1,0 +1,13 @@
+---
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  tasks:
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all apt packages
+      apt:
+        upgrade: dist

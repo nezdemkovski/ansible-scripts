@@ -1,0 +1,88 @@
+---
+# Playbook: n8n Workflow Automation Deployment
+# Description: Deploys and configures the n8n workflow automation platform with Postgres backend and Traefik integration
+#
+# This playbook handles:
+# - Installation and configuration of n8n
+# - Postgres database setup
+# - Persistent volume management
+# - Traefik integration for secure HTTPS access
+#
+# Required Variables (defined in vault.yml):
+# - ansible_user: SSH user for remote access
+# - ansible_become_password: Sudo password for privileged operations
+# - domain_name: Primary domain for the infrastructure
+# - local_domain_name: Internal domain name (optional)
+# - db_postgres_database: Postgres database name for n8n
+# - db_postgres_user: Postgres user for n8n
+# - db_postgres_password: Postgres password for n8n
+# - db_postgres_schema: Postgres schema for n8n (optional, defaults to 'public')
+#
+# Exposed Ports:
+# - 30078: n8n web UI (mapped from 5678)
+#
+# Security Notes:
+# - Traefik handles SSL termination
+# - Postgres database is containerized and isolated
+# - All web traffic is encrypted via HTTPS
+#
+# Usage:
+# ansible-playbook -i inventory/hosts.yml playbooks/n8n.yml
+
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  vars:
+    service_name: "n8n"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
+    appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
+    volume_base_path: "/home/{{ ansible_user }}/appdata"
+
+  tasks:
+    - name: Verify required variables
+      assert:
+        that:
+          - n8n_subdomain is defined
+          - domain_name is defined
+          - n8n_db_postgres_database is defined
+          - n8n_db_postgres_user is defined
+          - n8n_db_postgres_password is defined
+          - n8n_db_postgres_port is defined
+        fail_msg: "Required variables are not defined. Please ensure n8n_subdomain, domain_name, n8n_db_postgres_database, n8n_db_postgres_user, n8n_db_postgres_port and n8n_db_postgres_password are set in vault.yml"
+
+    - name: Stop and remove existing n8n and Postgres containers if they exist
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - n8n
+        - n8n_postgres
+      ignore_errors: yes
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0750"
+      loop:
+        - "{{ apps_path }}"
+        - "{{ appdata_path }}"
+
+    - name: Generate Docker Compose configuration
+      template:
+        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        dest: "{{ apps_path }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0640"
+
+    - name: Start n8n and Postgres using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ apps_path }}"
+        files:
+          - docker-compose.yml
+        state: present
+        pull: always
