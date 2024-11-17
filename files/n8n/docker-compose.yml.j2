@@ -1,6 +1,6 @@
 ---
 services:
-  postgres:
+  n8n_postgres:
     image: postgres:latest
     container_name: n8n_postgres
     pull_policy: always
@@ -10,10 +10,15 @@ services:
       - POSTGRES_USER={{ n8n_db_postgres_user }}
       - POSTGRES_PASSWORD={{ n8n_db_postgres_password }}
     volumes:
-      - {{ volume_base_path }}/n8n/postgres:/var/lib/postgresql/data
+      - n8n_postgres:/var/lib/postgresql/data
     networks:
       - n8n-net
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h n8n_postgres -p {{ n8n_db_postgres_port }} -U {{ n8n_db_postgres_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     container_name: n8n
@@ -25,7 +30,7 @@ services:
       - n8n-net
       - traefik-proxy
     depends_on:
-      - postgres
+      - n8n_postgres
     labels:
       - traefik.enable=true
       - "traefik.http.routers.n8n.rule=Host(`{{ n8n_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ n8n_subdomain }}.{{ local_domain_name }}`){% endif %}"
@@ -50,8 +55,11 @@ services:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
     volumes:
       - {{ volume_base_path }}/n8n:/home/node/.n8n
+volumes:
+  n8n_postgres:
 networks:
   n8n-net:
+    name: n8n-net 
     driver: bridge
   traefik-proxy:
     external: true

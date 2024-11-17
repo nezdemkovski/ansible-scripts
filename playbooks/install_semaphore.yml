@@ -1,0 +1,93 @@
+---
+# Playbook: Semaphore UI Deployment
+# Description: Deploys Semaphore UI with MySQL backend for Ansible management
+#
+# This playbook handles:
+# - MySQL database setup for Semaphore
+# - Semaphore UI deployment
+# - Volume management for persistent storage
+# - Network configuration for service communication
+#
+# Required Variables (defined in vault.yml):
+# Database Configuration:
+# - semaphore_mysql_random_root_password: Boolean for random root password
+# - semaphore_mysql_database: Database name
+# - semaphore_mysql_user: MySQL user
+# - semaphore_mysql_password: MySQL password
+#
+# Semaphore Configuration:
+# - semaphore_db_user: Database user
+# - semaphore_db_pass: Database password
+# - semaphore_db_host: Database host
+# - semaphore_db_port: Database port
+# - semaphore_db_dialect: Database type
+# - semaphore_db: Database name
+# - semaphore_playbook_path: Path to playbooks
+# - semaphore_admin_password: Admin password
+# - semaphore_admin_name: Admin username
+# - semaphore_admin_email: Admin email
+# - semaphore_admin: Admin boolean
+# - semaphore_access_key_encryption: Encryption key
+# - ansible_host_key_checking: Boolean for host key checking
+#
+# Usage:
+# ansible-playbook -i inventory/hosts.yml playbooks/semaphore.yml --vault-password-file password.txt
+
+- hosts: ubuntu_servers
+  become: true
+  vars_files:
+    - ../group_vars/ubuntu_servers/vault.yml
+  vars:
+    service_name: "semaphore"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
+    volume_base_path: "/home/{{ ansible_user }}/appdata"
+
+  tasks:
+    - name: Verify required variables
+      assert:
+        that:
+          - semaphore_postgres_db is defined
+          - semaphore_postgres_user is defined
+          - semaphore_postgres_password is defined
+          - semaphore_admin_password is defined
+          - semaphore_admin_name is defined
+          - semaphore_admin_email is defined
+        fail_msg: "Required variables are not defined in vault.yml"
+
+    - name: Stop and remove existing containers if they exist
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - semaphore
+        - semaphore_postgres
+      ignore_errors: yes
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ apps_path }}"
+        - "{{ volume_base_path }}/semaphore/data"
+        - "{{ volume_base_path }}/semaphore/config"
+        - "{{ volume_base_path }}/semaphore/tmp"
+
+    - name: Generate Docker Compose configuration
+      template:
+        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        dest: "{{ apps_path }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0640"
+
+    - name: Start Semaphore using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ apps_path }}"
+        files:
+          - docker-compose.yml
+        state: present
+        pull: always

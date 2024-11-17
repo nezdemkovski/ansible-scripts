@@ -14,7 +14,7 @@
 # - 9090: Prometheus web UI
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/prometheus.yml
+# ansible-playbook -i inventory/hosts.yml playbooks/prometheus.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true

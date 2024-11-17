@@ -1,0 +1,26 @@
+---
+services:
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    restart: unless-stopped
+    pull_policy: always
+    networks:
+      - traefik-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - {{ volume_base_path }}/homarr/configs:/app/data/configs
+      - {{ volume_base_path }}/homarr/icons:/app/public/icons
+      - {{ volume_base_path }}/homarr/data:/data
+    ports:
+      - '7575:7575'
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.homarr.rule=Host(`{{ homarr_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ homarr_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.homarr.entrypoints=websecure
+      - traefik.http.routers.homarr.tls=true
+      - traefik.http.routers.homarr.tls.certresolver=cloudflare
+      - traefik.http.services.homarr.loadbalancer.server.port=8080
+networks:
+  traefik-proxy:
+    external: true

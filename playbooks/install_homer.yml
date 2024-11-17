@@ -22,7 +22,7 @@
 # - All web traffic is encrypted via HTTPS
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/homer.yml
+# ansible-playbook -i inventory/hosts.yml playbooks/homer.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
@@ -40,7 +40,7 @@
         that:
           - domain_name is defined
           - homer_subdomain is defined
-        fail_msg: "Required variables are not defined. Please ensure domain_name and homer_subdomain are set in vault.yml"
+        fail_msg: "Required variables are not defined in vault.yml"
 
     - name: Stop and remove existing Homer container if it exists
       community.docker.docker_container:

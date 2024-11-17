@@ -25,7 +25,7 @@
 # - All web traffic is encrypted via HTTPS
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/portainer.yml
+# ansible-playbook -i inventory/hosts.yml playbooks/portainer.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
@@ -43,7 +43,7 @@
         that:
           - portainer_subdomain is defined
           - domain_name is defined
-        fail_msg: "Required variables are not defined. Please ensure portainer_subdomain and domain_name are set in vault.yml"
+        fail_msg: "Required variables are not defined in vault.yml"
 
     - name: Stop and remove existing Portainer container if it exists
       community.docker.docker_container:

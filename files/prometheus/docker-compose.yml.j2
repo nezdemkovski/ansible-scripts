@@ -32,13 +32,13 @@ services:
       - /:/rootfs:ro
     restart: unless-stopped
     networks:
-      - traefik-proxy
       - prometheus-net
 volumes:
   prometheus-data:
     driver: local
 networks:
   prometheus-net:
+    name: prometheus-net
     driver: bridge
   traefik-proxy:
     external: true

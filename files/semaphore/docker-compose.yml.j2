@@ -1,0 +1,59 @@
+---
+services:
+  semaphore_postgres:
+    image: postgres:latest
+    container_name: semaphore_postgres
+    networks:
+      - semaphore-net
+    environment:
+      - POSTGRES_USER={{ semaphore_postgres_user }}
+      - POSTGRES_PASSWORD={{ semaphore_postgres_password }}
+      - POSTGRES_DB={{ semaphore_postgres_db }}
+    volumes:
+      - semaphore_postgres:/var/lib/postgresql/data
+
+  semaphore:
+    container_name: semaphore
+    image: semaphoreui/semaphore:latest
+    user: "0:0" 
+    ports:
+      - 3000:3000
+    networks:
+      - traefik-proxy
+      - semaphore-net
+    environment:
+      - SEMAPHORE_DB_USER={{ semaphore_postgres_user }}
+      - SEMAPHORE_DB_PASS={{ semaphore_postgres_password }}
+      - SEMAPHORE_DB_HOST=semaphore_postgres
+      - SEMAPHORE_DB_PORT=5432
+      - SEMAPHORE_DB_DIALECT=postgres
+      - SEMAPHORE_DB={{ semaphore_postgres_db }}
+      - SEMAPHORE_PLAYBOOK_PATH={{ semaphore_playbook_path }}
+      - SEMAPHORE_ADMIN_PASSWORD={{ semaphore_admin_password }}
+      - SEMAPHORE_ADMIN_NAME={{ semaphore_admin_name }}
+      - SEMAPHORE_ADMIN_EMAIL={{ semaphore_admin_email }}
+      - SEMAPHORE_ADMIN={{ semaphore_admin }}
+      - SEMAPHORE_ACCESS_KEY_ENCRYPTION={{ semaphore_access_key_encryption }} # run `head -c32 /dev/urandom | base64` to generate a key
+      - ANSIBLE_HOST_KEY_CHECKING={{ ansible_host_key_checking }} # (optional) change to true if you want to enable host key checking
+    volumes:
+      - {{ volume_base_path }}/semaphore/data/:/var/lib/semaphore
+      - {{ volume_base_path }}/semaphore/config/:/etc/semaphore:rw
+      - {{ volume_base_path }}/semaphore/tmp/:/tmp/semaphore
+    restart: unless-stopped
+    depends_on:
+      - semaphore_postgres
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.semaphore.rule=Host(`{{ semaphore_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ semaphore_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.semaphore.entrypoints=websecure
+      - traefik.http.routers.semaphore.tls=true
+      - traefik.http.routers.semaphore.tls.certresolver=cloudflare
+      - traefik.http.services.semaphore.loadbalancer.server.port=3000
+volumes:
+  semaphore_postgres:
+networks:
+  semaphore-net:
+    name: semaphore-net 
+    driver: bridge
+  traefik-proxy:
+    external: true

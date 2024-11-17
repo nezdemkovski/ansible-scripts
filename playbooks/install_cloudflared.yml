@@ -19,7 +19,7 @@
 # - Automatic tunnel management by Cloudflare
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/cloudflared.yml
+# ansible-playbook -i inventory/hosts.yml playbooks/cloudflared.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true

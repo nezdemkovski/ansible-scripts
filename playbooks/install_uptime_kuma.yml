@@ -1,40 +1,36 @@
 ---
-# Playbook: n8n Workflow Automation Deployment
-# Description: Deploys and configures the n8n workflow automation platform with Postgres backend and Traefik integration
+# Playbook: Uptime Kuma Deployment
+# Description: Deploys and configures Uptime Kuma monitoring tool with Traefik integration
 #
 # This playbook handles:
-# - Installation and configuration of n8n
-# - Postgres database setup
-# - Persistent volume management
+# - Installation and configuration of Uptime Kuma
 # - Traefik integration for secure HTTPS access
+# - Persistent volume setup for monitoring data
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
 # - ansible_become_password: Sudo password for privileged operations
 # - domain_name: Primary domain for the infrastructure
 # - local_domain_name: Internal domain name (optional)
-# - db_postgres_database: Postgres database name for n8n
-# - db_postgres_user: Postgres user for n8n
-# - db_postgres_password: Postgres password for n8n
-# - db_postgres_schema: Postgres schema for n8n (optional, defaults to 'public')
+# - uptime_kuma_subdomain: Subdomain for Uptime Kuma access (e.g., 'status')
 #
 # Exposed Ports:
-# - 30078: n8n web UI (mapped from 5678)
+# - 30015: HTTP UI (mapped from 3001)
 #
 # Security Notes:
 # - Traefik handles SSL termination
-# - Postgres database is containerized and isolated
 # - All web traffic is encrypted via HTTPS
+# - Data persistence through Docker volumes
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/n8n.yml --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/uptime-kuma.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "n8n"
+    service_name: "uptime-kuma"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
     appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
     volume_base_path: "/home/{{ ansible_user }}/appdata"
@@ -43,21 +39,14 @@
     - name: Verify required variables
       assert:
         that:
-          - n8n_subdomain is defined
           - domain_name is defined
-          - n8n_db_postgres_database is defined
-          - n8n_db_postgres_user is defined
-          - n8n_db_postgres_password is defined
-          - n8n_db_postgres_port is defined
-        fail_msg: "Required variables are not defined in vault.yml"
+          - uptime_kuma_subdomain is defined
+        fail_msg: "Required variables are not defined. Please ensure domain_name and uptime_kuma_subdomain are set in vault.yml"
 
-    - name: Stop and remove existing n8n and Postgres containers if they exist
+    - name: Stop and remove existing Uptime Kuma container if it exists
       community.docker.docker_container:
-        name: "{{ item }}"
+        name: uptime-kuma
         state: absent
-      loop:
-        - n8n
-        - n8n_postgres
       ignore_errors: yes
 
     - name: Create required directories
@@ -79,7 +68,7 @@
         group: "{{ ansible_user }}"
         mode: "0640"
 
-    - name: Start n8n and Postgres using Docker Compose
+    - name: Start Uptime Kuma using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:
