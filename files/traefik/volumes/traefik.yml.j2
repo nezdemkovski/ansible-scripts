@@ -34,6 +34,7 @@ certificatesResolvers:
 providers:
   docker:
     exposedByDefault: false
+    network: "traefik-proxy"
   file:
     directory: /etc/traefik
     watch: true

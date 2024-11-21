@@ -4,6 +4,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
+    pull_policy: always
     command: tunnel run
     networks:
       - traefik-proxy

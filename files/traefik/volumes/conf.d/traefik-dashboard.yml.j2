@@ -1,16 +1,20 @@
 http:
   routers:
     traefik-dashboard:
-      rule: "Host(`{{ traefik_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ traefik_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      rule: Host(`{{ traefik_subdomain }}.{{ local_domain_name }}`)
       entryPoints:
         - websecure
       service: api@internal
       middlewares:
-        - auth
+        - authentik@file
       tls:
         certResolver: cloudflare
-  middlewares:
-    auth:
-      basicAuth:
-        users:
-          - "{{ traefik_dashboard_basic_auth_users }}"
+    traefik-dashboard-external:
+      rule: Host(`{{ traefik_subdomain }}.{{ domain_name }}`)
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - authentik-external@file
+      tls:
+        certResolver: cloudflare

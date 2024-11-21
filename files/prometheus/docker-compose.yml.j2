@@ -10,16 +10,25 @@ services:
       - {{ volume_base_path }}/prometheus/config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
       - prometheus-data:/prometheus
     restart: unless-stopped
+    pull_policy: always
     networks:
       - traefik-proxy
       - prometheus-net
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.prometheus.rule=Host(`{{ prometheus_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ prometheus_subdomain }}.{{ local_domain_name }}`){% endif %}"
-      - traefik.http.routers.prometheus.entrypoints=websecure
-      - traefik.http.routers.prometheus.tls=true
-      - traefik.http.routers.prometheus.tls.certresolver=cloudflare
-      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+
+      # External host
+      - traefik.http.routers.prometheus-external.rule=Host(`{{ prometheus_subdomain }}.{{ domain_name }}`)
+      - traefik.http.routers.prometheus-external.entrypoints=websecure
+      - traefik.http.routers.prometheus-external.tls=true
+      - traefik.http.routers.prometheus-external.tls.certresolver=cloudflare
+      - traefik.http.routers.prometheus-external.middlewares=authentik-external@file
+
+      # Internal host
+      - traefik.http.routers.prometheus-internal.rule=Host(`{{ prometheus_subdomain }}.{{ local_domain_name }}`)
+      - traefik.http.routers.prometheus-internal.entrypoints=websecure
+      - traefik.http.routers.prometheus-internal.tls=true
+      - traefik.http.routers.prometheus-internal.middlewares=authentik@file
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -31,6 +40,7 @@ services:
       - /sys:/sys:ro
       - /:/rootfs:ro
     restart: unless-stopped
+    pull_policy: always
     networks:
       - prometheus-net
 volumes:

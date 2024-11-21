@@ -1,46 +1,50 @@
 ---
-# Playbook: Cloudflare Tunnel Deployment
-# Description: Deploys and configures Cloudflare Tunnel (cloudflared) for secure remote access
+# Playbook: Dozzle Deployment
+# Description: Deploys and configures Dozzle - a real-time Docker log viewer
 #
 # This playbook handles:
-# - Installation and configuration of Cloudflare Tunnel
-# - Integration with existing Traefik network
-# - Secure token management
-# - Persistent configuration storage
+# - Installation and configuration of Dozzle
+# - Traefik integration for secure HTTPS access
+# - Docker socket mounting for log access
+# - Health check configuration
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
 # - ansible_become_password: Sudo password for privileged operations
-# - cf_tunnel_token: Cloudflare Tunnel token from the Cloudflare Zero Trust dashboard
+# - domain_name: Primary domain for the infrastructure
+# - local_domain_name: Internal domain name (optional)
+# - dozzle_subdomain: Subdomain for Dozzle access (e.g., 'logs')
+#
+# Exposed Ports:
+# - 30042: HTTP interface (mapped from 8080)
 #
 # Security Notes:
-# - Tunnel token is stored securely in vault.yml
-# - No ports exposed to the internet
-# - Automatic tunnel management by Cloudflare
+# - Traefik handles SSL termination
+# - Docker socket is mounted read-only for security
+# - All web traffic is encrypted via HTTPS
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/cloudflared.yml --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/dozzle.yml  --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "cloudflared"
+    service_name: "dozzle"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
-    appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
-    volume_base_path: "/home/{{ ansible_user }}/appdata"
 
   tasks:
     - name: Verify required variables
       assert:
         that:
-          - cf_tunnel_token is defined and cf_tunnel_token | length > 0
+          - domain_name is defined
+          - dozzle_subdomain is defined
         fail_msg: "Required variables are not defined in vault.yml"
 
-    - name: Stop and remove existing Cloudflared container if it exists
+    - name: Stop and remove existing Dozzle container if it exists
       community.docker.docker_container:
-        name: cloudflared
+        name: dozzle
         state: absent
       ignore_errors: yes
 
@@ -53,7 +57,6 @@
         mode: "0750"
       loop:
         - "{{ apps_path }}"
-        - "{{ appdata_path }}"
 
     - name: Generate Docker Compose configuration
       template:
@@ -63,7 +66,7 @@
         group: "{{ ansible_user }}"
         mode: "0640"
 
-    - name: Start Cloudflared using Docker Compose
+    - name: Start Dozzle using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:

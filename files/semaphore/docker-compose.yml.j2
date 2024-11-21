@@ -3,6 +3,8 @@ services:
   semaphore_postgres:
     image: postgres:latest
     container_name: semaphore_postgres
+    restart: unless-stopped
+    pull_policy: always
     networks:
       - semaphore-net
     environment:
@@ -15,6 +17,7 @@ services:
   semaphore:
     container_name: semaphore
     image: semaphoreui/semaphore:latest
+    pull_policy: always
     user: "0:0" 
     ports:
       - 3000:3000

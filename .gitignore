@@ -1,3 +1,4 @@
 pass
 password.txt
 .DS_Store
+.env
