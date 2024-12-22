@@ -1,0 +1,18 @@
+---
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    pull_policy: always
+    environment:
+      - WATCHTOWER_SCHEDULE=0 0 6 * * * # Update daily at 6 AM
+      - WATCHTOWER_CLEANUP=true # Clean up old images
+      - WATCHTOWER_ROLLING_RESTART=true # Enable rolling restarts
+      - WATCHTOWER_DEBUG=true # Enable debug logging
+      - WATCHTOWER_LOG_LEVEL=info # Set log level (debug, info, warn, error)
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr # Enable notifications
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL_TELEGRAM}
+      - TZ=${GENERIC_TIMEZONE}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped

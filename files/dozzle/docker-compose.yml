@@ -8,11 +8,11 @@ services:
     ports:
       - 30042:8080
     environment:
-      - DOZZLE_ENABLE_ACTIONS=true
+      - DOZZLE_ENABLE_ACTIONS=${DOZZLE_ENABLE_ACTIONS}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: [ "CMD", "/dozzle", "healthcheck" ]
+      test: ["CMD", "/dozzle", "healthcheck"]
       interval: 3s
       timeout: 30s
       retries: 5
@@ -23,15 +23,15 @@ services:
       - traefik.enable=true
 
       # External host
-      - traefik.http.routers.dozzle-external.rule=Host(`{{ dozzle_subdomain }}.{{ domain_name }}`)
+      - traefik.http.routers.dozzle-external.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`)
       - traefik.http.routers.dozzle-external.entrypoints=websecure
       - traefik.http.routers.dozzle-external.tls=true
       - traefik.http.routers.dozzle-external.tls.certresolver=cloudflare
       - traefik.http.routers.dozzle-external.middlewares=authentik-external@file
-      - traefik.http.services.dozzle.loadbalancer.server.port=8080
+      - traefik.http.services.dozzle-external.loadbalancer.server.port=8080
 
       # Internal host
-      - traefik.http.routers.dozzle-internal.rule=Host(`{{ dozzle_subdomain }}.{{ local_domain_name }}`)
+      - traefik.http.routers.dozzle-internal.rule=Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
       - traefik.http.routers.dozzle-internal.entrypoints=websecure
       - traefik.http.routers.dozzle-internal.tls=true
       - traefik.http.routers.dozzle-internal.middlewares=authentik@file

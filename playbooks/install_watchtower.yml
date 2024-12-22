@@ -1,50 +1,35 @@
 ---
-# Playbook: Dozzle Deployment
-# Description: Deploys and configures Dozzle - a real-time Docker log viewer
+# Playbook: Watchtower Deployment
+# Description: Deploys and configures Watchtower for automatic container updates
 #
 # This playbook handles:
-# - Installation and configuration of Dozzle
-# - Traefik integration for secure HTTPS access
-# - Docker socket mounting for log access
-# - Health check configuration
+# - Installation and configuration of Watchtower
+# - Integration with Docker socket
+# - Secure and persistent configuration
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
 # - ansible_become_password: Sudo password for privileged operations
-# - domain_name: Primary domain for the infrastructure
-# - local_domain_name: Internal domain name (optional)
-# - dozzle_subdomain: Subdomain for Dozzle access (e.g., 'logs')
-#
-# Exposed Ports:
-# - 30042: HTTP interface (mapped from 8080)
 #
 # Security Notes:
-# - Traefik handles SSL termination
-# - Docker socket is mounted read-only for security
-# - All web traffic is encrypted via HTTPS
+# - Docker socket is mounted for container management
+# - Automatic container updates managed by Watchtower
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/dozzle.yml  --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/watchtower.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "dozzle"
+    service_name: "watchtower"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
 
   tasks:
-    - name: Verify required variables
-      assert:
-        that:
-          - domain_name is defined
-          - dozzle_subdomain is defined
-        fail_msg: "Required variables are not defined in vault.yml"
-
-    - name: Stop and remove existing Dozzle container if it exists
+    - name: Stop and remove existing Watchtower container if it exists
       community.docker.docker_container:
-        name: dozzle
+        name: watchtower
         state: absent
       ignore_errors: yes
 
@@ -54,7 +39,7 @@
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        mode: "0750"
+        mode: "0755"
       loop:
         - "{{ apps_path }}"
 
@@ -74,7 +59,7 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: Start Dozzle using Docker Compose
+    - name: Start Watchtower using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:
