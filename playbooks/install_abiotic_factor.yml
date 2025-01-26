@@ -1,34 +1,28 @@
 ---
-# Playbook: Kestra Workflow Engine Deployment
-# Description: Deploys Kestra workflow orchestration engine with PostgreSQL backend
-#
-# This playbook handles:
-# - PostgreSQL database setup for Kestra
-# - Kestra server configuration with Docker socket access
-# - Local storage configuration
-# - Network setup for internal and Traefik communication
+# Playbook: Abiotic Factor Game Server Deployment
+# Description: Deploys Abiotic Factor game server with Docker and Traefik integration
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
-# - kestra_db_postgres_database: PostgreSQL database name
-# - kestra_db_postgres_user: PostgreSQL username
-# - kestra_db_postgres_password: PostgreSQL password
-# - kestra_basic_auth_username: Email address for basic auth
-# - kestra_basic_auth_password: Password for basic auth
+# - domain_name: Primary domain for the infrastructure
+# - local_domain_name: Internal domain name (optional)
+# - abiotic_server_name: Name of the game server
+# - abiotic_server_password: Server password (optional)
 #
-# Exposed Ports:
-# - 38088: Kestra UI (8080)
-# - 38089: Kestra API (8081)
+# Exposed Ports (internal):
+# - 2456/udp: Primary game port
+# - 2457/udp: Secondary port
+# - 2458/udp: Backup port
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/kestra.yml --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/abiotic-factor.yml
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "kestra"
+    service_name: "abiotic-factor"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
     appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
 
@@ -36,18 +30,14 @@
     - name: Verify required variables
       assert:
         that:
-          - kestra_db_postgres_database is defined
-          - kestra_db_postgres_user is defined
-          - kestra_db_postgres_password is defined
+          # - domain_name is defined
+          # - abiotic_server_name is defined
         fail_msg: "Required variables are not defined in vault.yml"
 
-    - name: Stop and remove existing containers
+    - name: Stop and remove existing Abiotic Factor container if it exists
       community.docker.docker_container:
-        name: "{{ item }}"
+        name: abiotic-factor
         state: absent
-      loop:
-        - kestra
-        - kestra-postgres
       ignore_errors: yes
 
     - name: Create required directories
@@ -56,7 +46,7 @@
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        mode: "0750"
+        mode: "0755"
       loop:
         - "{{ apps_path }}"
         - "{{ appdata_path }}"
@@ -67,7 +57,7 @@
         dest: "{{ apps_path }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        mode: "0640"
+        mode: "0644"
 
     - name: Generate environment file
       template:
@@ -77,7 +67,7 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: Start Kestra using Docker Compose
+    - name: Start Abiotic Factor server using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:

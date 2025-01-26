@@ -1,0 +1,32 @@
+---
+services:
+  vrising:
+    image: ich777/steamcmd:vrising
+    container_name: vrising
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - 9876-9877:9876-9877/udp
+    environment:
+      - GAME_ID=1829350
+      - SERVER_NAME=Gaymers
+      - WORLD_NAME=Pizdrising
+      - GAME_PARAMS=
+      - UID=1000 # user UID
+      - GID=1000 # group GID
+      - DATA_PERM=770 # data folder permissions
+    volumes:
+      - ${APPDATA_PATH}/steamcmd:/serverdata/steamcmd
+      - ${APPDATA_PATH}/serverfiles:/serverdata/serverfiles
+  dozzle-agent:
+    image: amir20/dozzle:latest
+    container_name: dozzle-agent
+    pull_policy: always
+    restart: unless-stopped
+    command: agent
+    environment:
+      - DOZZLE_HOSTNAME=vrising
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 7007:7007

@@ -1,0 +1,35 @@
+---
+services:
+  abiotic-factor:
+    image: ich777/steamcmd:abioticfactor
+    container_name: abiotic-factor
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "7777:7777/udp" # Game port
+      - "27015:27015/udp" # Query Port
+    environment:
+      - GAME_ID=2857200
+      - SERVER_NAME=Gaymers
+      - SERVER_PWD=Docker
+      - QUERY_PORT=27015
+      - GAME_PORT=7777
+      - GAME_PARAMS=-log # additional game parameters (optional)
+
+      - UID=1000 # user UID
+      - GID=1000 # group GID
+      - DATA_PERM=770 # data folder permissions
+    volumes:
+      - ${APPDATA_PATH}/steamcmd:/serverdata/steamcmd
+      - ${APPDATA_PATH}/serverfiles:/serverdata/serverfiles
+  dozzle-agent:
+    image: amir20/dozzle:latest
+    pull_policy: always
+    restart: unless-stopped
+    command: agent
+    environment:
+      - DOZZLE_HOSTNAME=abiotic-factor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 7007:7007

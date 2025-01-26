@@ -1,0 +1,35 @@
+---
+services:
+  sonsoftheforest:
+    image: ich777/steamcmd:sonsoftheforest
+    container_name: sonsoftheforest
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - 8766:8766/udp # Game Port
+      - 27016:27016/udp # Query Port
+      - 9700:9700/udp # Blob Sync Port
+    environment:
+      - GAME_ID=2465200
+      - GAME_PARAMS=
+      - UID=1000 # user UID
+      - GID=1000 # group GID
+      - DATA_PERM=770 # data folder permissions
+    volumes:
+      - ${APPDATA_PATH}/steamcmd:/serverdata/steamcmd
+      - ${APPDATA_PATH}/serverfiles:/serverdata/serverfiles
+  dozzle-agent:
+    image: amir20/dozzle:latest
+    container_name: dozzle-agent
+    pull_policy: always
+    restart: unless-stopped
+    command: agent
+    environment:
+      - DOZZLE_HOSTNAME=sonsoftheforest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 7007:7007
+# SERVERNAME: 'Sons Of The Forest Docker Server'
+# SERVERPASSWORD: 'Docker'
+# (you can change this in your appdata/userdata/dedicatedserver.cfg)
