@@ -1,0 +1,37 @@
+---
+services:
+  ollama:
+    image: ollama/ollama:rocm
+    container_name: ollama
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - 11434:11434
+    # devices:
+    #   - /dev/kfd
+    #   - /dev/dri
+    environment:
+      - OLLAMA_ORIGINS=*
+    volumes:
+      - ${APPDATA_PATH}:/root/.ollama
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=false
+
+      # # External host
+      # - traefik.http.routers.dozzle-external.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`)
+      # - traefik.http.routers.dozzle-external.entrypoints=websecure
+      # - traefik.http.routers.dozzle-external.tls=true
+      # - traefik.http.routers.dozzle-external.tls.certresolver=cloudflare
+      # - traefik.http.routers.dozzle-external.middlewares=authentik-external@file
+      # - traefik.http.services.dozzle-external.loadbalancer.server.port=11434
+
+      # # Internal host
+      # - traefik.http.routers.dozzle-internal.rule=Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      # - traefik.http.routers.dozzle-internal.entrypoints=websecure
+      # - traefik.http.routers.dozzle-internal.tls=true
+      # - traefik.http.routers.dozzle-internal.middlewares=authentik@file
+networks:
+  traefik-proxy:
+    external: true

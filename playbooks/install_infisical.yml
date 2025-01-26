@@ -1,48 +1,51 @@
----
-# Playbook: Cloudflare Tunnel Deployment
-# Description: Deploys and configures Cloudflare Tunnel (cloudflared) for secure remote access
+# Playbook: Infisical Deployment
+# Description: Deploys Infisical secrets management platform with all required components
 #
 # This playbook handles:
-# - Installation and configuration of Cloudflare Tunnel
-# - Integration with existing Traefik network
-# - Secure token management
-# - Persistent configuration storage
+# - PostgreSQL database setup
+# - Redis cache deployment
+# - Infisical backend with database migration
+# - Traefik integration for secure HTTPS access
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
-# - ansible_become_password: Sudo password for privileged operations
-# - cf_tunnel_token: Cloudflare Tunnel token from the Cloudflare Zero Trust dashboard
+# - infisical_subdomain: Subdomain for Infisical access
+# - domain_name: Primary domain for the infrastructure
+# - local_domain_name: Internal domain name (optional)
+# - postgres_user: PostgreSQL username
+# - postgres_password: PostgreSQL password
+# - postgres_db: Database name
+#
+# Exposed Ports:
+# - 6379: Redis
 #
 # Security Notes:
-# - Tunnel token is stored securely in vault.yml
-# - No ports exposed to the internet
-# - Automatic tunnel management by Cloudflare
+# - Traefik handles SSL termination
+# - Separate networks for isolation
+# - Database and Redis with secure configurations
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/cloudflared.yml --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/infisical.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "cloudflared"
+    service_name: "infisical"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
     appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
-    volume_base_path: "/home/{{ ansible_user }}/appdata"
 
   tasks:
     - name: Verify required variables
       assert:
         that:
-          - cf_tunnel_token is defined and cf_tunnel_token | length > 0
+          - domain_name is defined
+          - infisical_subdomain is defined
+          # - postgres_user is defined
+          # - postgres_password is defined
+          # - postgres_db is defined
         fail_msg: "Required variables are not defined in vault.yml"
-
-    - name: Stop and remove existing Cloudflared container if it exists
-      community.docker.docker_container:
-        name: cloudflared
-        state: absent
-      ignore_errors: yes
 
     - name: Create required directories
       file:
@@ -53,7 +56,6 @@
         mode: "0750"
       loop:
         - "{{ apps_path }}"
-        - "{{ appdata_path }}"
 
     - name: Generate Docker Compose configuration
       template:
@@ -71,7 +73,7 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: Start Cloudflared using Docker Compose
+    - name: Start Infisical stack using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:

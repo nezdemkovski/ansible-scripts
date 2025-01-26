@@ -9,13 +9,13 @@ services:
     networks:
       - traefik-proxy
     volumes:
-      - {{ volume_base_path }}/homer/assets/:/www/assets
+      - ${APPDATA_PATH}/assets/:/www/assets
     environment:
       - INIT_ASSETS=1
     restart: unless-stopped
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.homer.rule=Host(`{{ homer_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ homer_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.homer.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
       - traefik.http.routers.homer.entrypoints=websecure
       - traefik.http.routers.homer.tls=true
       - traefik.http.routers.homer.tls.certresolver=cloudflare

@@ -1,48 +1,32 @@
----
-# Playbook: Cloudflare Tunnel Deployment
-# Description: Deploys and configures Cloudflare Tunnel (cloudflared) for secure remote access
+# Playbook: Ollama Deployment
+# Description: Deploys Ollama for AMD GPU usage via Docker Compose
 #
 # This playbook handles:
-# - Installation and configuration of Cloudflare Tunnel
-# - Integration with existing Traefik network
-# - Secure token management
-# - Persistent configuration storage
+# - Directory creation for the Ollama deployment
+# - Docker Compose configuration generation
+# - Container startup with GPU passthrough
 #
 # Required Variables (defined in vault.yml):
 # - ansible_user: SSH user for remote access
-# - ansible_become_password: Sudo password for privileged operations
-# - cf_tunnel_token: Cloudflare Tunnel token from the Cloudflare Zero Trust dashboard
-#
-# Security Notes:
-# - Tunnel token is stored securely in vault.yml
-# - No ports exposed to the internet
-# - Automatic tunnel management by Cloudflare
 #
 # Usage:
-# ansible-playbook -i inventory/hosts.yml playbooks/cloudflared.yml --vault-password-file password.txt
+# ansible-playbook -i inventory/hosts.yml playbooks/ollama.yml --vault-password-file password.txt
 
 - hosts: ubuntu_servers
   become: true
   vars_files:
     - ../group_vars/ubuntu_servers/vault.yml
   vars:
-    service_name: "cloudflared"
+    service_name: "ollama"
     apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
     appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
-    volume_base_path: "/home/{{ ansible_user }}/appdata"
 
   tasks:
     - name: Verify required variables
       assert:
         that:
-          - cf_tunnel_token is defined and cf_tunnel_token | length > 0
+          - ansible_user is defined
         fail_msg: "Required variables are not defined in vault.yml"
-
-    - name: Stop and remove existing Cloudflared container if it exists
-      community.docker.docker_container:
-        name: cloudflared
-        state: absent
-      ignore_errors: yes
 
     - name: Create required directories
       file:
@@ -71,7 +55,7 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: Start Cloudflared using Docker Compose
+    - name: Start Ollama stack using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:

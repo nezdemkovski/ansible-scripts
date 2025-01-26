@@ -3,6 +3,7 @@ services:
   postgres:
     image: postgres:latest
     container_name: kestra-postgres
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=${KESTRA_POSTGRES_DB}
       - POSTGRES_USER=${KESTRA_POSTGRES_USER}
@@ -21,6 +22,7 @@ services:
     image: kestra/kestra:latest
     container_name: kestra
     pull_policy: always
+    restart: unless-stopped
     # Note that this setup with a root user is intended for development purpose.
     # Our base image runs without root, but the Docker Compose implementation needs root to access the Docker socket
     # To run Kestra in a rootless mode in production, see: https://kestra.io/docs/installation/podman-compose
@@ -60,7 +62,7 @@ services:
       - traefik.enable=true
 
       # External host
-      - traefik.http.routers.kestra-external.rule=Host(`${KESTRA_SUBDOMAIN}.${DOMAIN_NAME}`)
+      - traefik.http.routers.kestra-external.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`)
       - traefik.http.routers.kestra-external.entrypoints=websecure
       - traefik.http.routers.kestra-external.tls=true
       - traefik.http.routers.kestra-external.tls.certresolver=cloudflare
@@ -69,7 +71,7 @@ services:
       - traefik.http.services.kestra-external-service.loadbalancer.server.port=8080
 
       # Internal host
-      - traefik.http.routers.kestra-internal.rule=Host(`${KESTRA_SUBDOMAIN}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.kestra-internal.rule=Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
       - traefik.http.routers.kestra-internal.entrypoints=websecure
       - traefik.http.routers.kestra-internal.tls=true
       - traefik.http.routers.kestra-internal.middlewares=authentik@file

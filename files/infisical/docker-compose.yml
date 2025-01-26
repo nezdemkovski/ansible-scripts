@@ -1,0 +1,84 @@
+---
+services:
+  db-migration:
+    container_name: infisical-postgres-migration
+    depends_on:
+      db:
+        condition: service_healthy
+    image: infisical/infisical:latest-postgres
+    env_file: .env
+    command: npm run migration:latest
+    pull_policy: always
+    networks:
+      - infisical-net
+    environment:
+      - DB_HOST=infisical-postgres
+
+  backend:
+    container_name: infisical-backend
+    image: infisical/infisical:latest-postgres
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
+    pull_policy: always
+    env_file: .env
+    # ports:
+    #   - 80:8080
+    environment:
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.infisical.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.infisical.entrypoints=websecure
+      - traefik.http.routers.infisical.tls=true
+      - traefik.http.routers.infisical.tls.certresolver=cloudflare
+      - traefik.http.services.infisical.loadbalancer.server.port=8080
+    networks:
+      - infisical-net
+      - traefik-proxy
+
+  redis:
+    image: redis
+    container_name: infisical-redis
+    env_file: .env
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+    networks:
+      - infisical-net
+    volumes:
+      - infisical_redis_data:/data
+
+  db:
+    container_name: infisical-postgres
+    image: postgres:14-alpine
+    restart: always
+    env_file: .env
+    volumes:
+      - infisical_postgres_data:/var/lib/postgresql/data
+    networks:
+      - infisical-net
+    healthcheck:
+      test: "pg_isready --username=${POSTGRES_USER} && psql --username=${POSTGRES_USER} --list"
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  infisical_postgres_data:
+    driver: local
+  infisical_redis_data:
+    driver: local
+networks:
+  infisical-net:
+    name: infisical-net
+    driver: bridge
+  traefik-proxy:
+    external: true

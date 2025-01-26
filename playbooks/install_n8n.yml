@@ -73,16 +73,26 @@
 
     - name: Generate Docker Compose configuration
       template:
-        src: "../files/{{ service_name }}/docker-compose.yml.j2"
+        src: "../files/{{ service_name }}/docker-compose.yml"
         dest: "{{ apps_path }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0640"
+
+    - name: Generate environment file
+      template:
+        src: "../files/{{ service_name }}/.env.j2"
+        dest: "{{ apps_path }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
 
     - name: Start n8n and Postgres using Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ apps_path }}"
         files:
           - docker-compose.yml
+        env_files:
+          - "{{ apps_path }}/.env"
         state: present
         pull: always

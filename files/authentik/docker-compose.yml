@@ -1,0 +1,131 @@
+---
+services:
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik-postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - authentik-postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${AUTHENTIK_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${AUTHENTIK_POSTGRES_DB}
+    env_file:
+      - .env
+    networks:
+      - authentik-net
+
+  redis:
+    image: docker.io/library/redis:alpine
+    container_name: authentik-redis
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - authentik-redis:/data
+    networks:
+      - authentik-net
+
+  server:
+    image: ghcr.io/goauthentik/server:2024.12
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_POSTGRESQL__HOST=postgresql
+      - AUTHENTIK_POSTGRESQL__USER=${AUTHENTIK_POSTGRES_USER}
+      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_POSTGRES_DB}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
+    volumes:
+      - ${APPDATA_PATH}/media:/media
+      - ${APPDATA_PATH}/custom-templates:/templates
+    env_file:
+      - .env
+    ports:
+      - "${COMPOSE_PORT_HTTP:-39000}:9000"
+      - "${COMPOSE_PORT_HTTPS:-39443}:9443"
+    depends_on:
+      - postgresql
+      - redis
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.authentik.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.authentik.entrypoints=websecure
+      - traefik.http.routers.authentik.tls=true
+      - traefik.http.routers.authentik.tls.certresolver=cloudflare
+      - traefik.http.services.authentik.loadbalancer.server.port=9000
+
+    networks:
+      - authentik-net
+      - traefik-proxy
+
+  worker:
+    image: ghcr.io/goauthentik/server:2024.12
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_POSTGRESQL__HOST=postgresql
+      - AUTHENTIK_POSTGRESQL__USER=${AUTHENTIK_POSTGRES_USER}
+      - AUTHENTIK_POSTGRESQL__NAME=${AUTHENTIK_POSTGRES_DB}
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${AUTHENTIK_POSTGRES_PASSWORD}
+    # `user: root` and the docker socket volume are optional.
+    # See more for the docker socket integration here:
+    # https://goauthentik.io/docs/outposts/integrations/docker
+    # Removing `user: root` also prevents the worker from fixing the permissions
+    # on the mounted folders, so when removing this make sure the folders have the correct UID/GID
+    # (1000:1000 by default)
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${APPDATA_PATH}/media:/media
+      - ${APPDATA_PATH}/certs:/certs
+      - ${APPDATA_PATH}/custom-templates:/templates
+    env_file:
+      - .env
+    depends_on:
+      - postgresql
+      - redis
+    networks:
+      - authentik-net
+      - traefik-proxy
+
+  authentik-outpost:
+    image: ghcr.io/goauthentik/proxy:2024.12
+    container_name: authentik-outpost
+    restart: unless-stopped
+    ports:
+      - "${COMPOSE_PORT_HTTP:-39001}:9000"
+      - "${COMPOSE_PORT_HTTPS:-39444}:9443"
+    environment:
+      AUTHENTIK_HOST: "https://authentik.nezdemkovski.cloud"
+      AUTHENTIK_TOKEN: "AypPtawQ0UkFcKUgcXWs0lOtB8gvtVpyv3DwBWQsqjXQOb10rO98VTSjPxAw"
+      AUTHENTIK_INSECURE: "true"
+      AUTHENTIK_HOST_BROWSER: "https://authentik.nezdemkovski.cloud"
+    networks:
+      - authentik-net
+      - traefik-proxy
+volumes:
+  authentik-postgres:
+    driver: local
+  authentik-redis:
+    driver: local
+networks:
+  traefik-proxy:
+    external: true
+  authentik-net:
+    name: authentik-net
+    driver: bridge

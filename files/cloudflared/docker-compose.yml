@@ -9,9 +9,9 @@ services:
     networks:
       - traefik-proxy
     environment:
-      - TUNNEL_TOKEN={{ cf_tunnel_token }}
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     volumes:
-      - {{ volume_base_path }}/cloudflared:/etc/cloudflared
+      - ${APPDATA_PATH}/cloudflared:/etc/cloudflared
 networks:
   traefik-proxy:
     external: true

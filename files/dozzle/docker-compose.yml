@@ -9,6 +9,7 @@ services:
       - 30042:8080
     environment:
       - DOZZLE_ENABLE_ACTIONS=${DOZZLE_ENABLE_ACTIONS}
+      - DOZZLE_REMOTE_AGENT=192.168.1.239:7007,192.168.1.205:7007,192.168.1.225:7007,192.168.1.164:7007
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
