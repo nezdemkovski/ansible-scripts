@@ -1,0 +1,28 @@
+---
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    pull_policy: always
+    restart: unless-stopped
+    networks:
+      - traefik-proxy
+    ports:
+      - 9000:9000
+      - 9001:9001
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.minio.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.minio.entrypoints=websecure
+      - traefik.http.routers.minio.tls=true
+      - traefik.http.routers.minio.tls.certresolver=cloudflare
+      - traefik.http.services.minio.loadbalancer.server.port=9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${APPDATA_PATH}:/data
+    command: server /data --console-address ":9001"
+networks:
+  traefik-proxy:
+    external: true

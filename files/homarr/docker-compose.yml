@@ -2,25 +2,27 @@
 services:
   homarr:
     container_name: homarr
-    image: ghcr.io/ajnart/homarr:latest
+    image: ghcr.io/homarr-labs/homarr:beta
     restart: unless-stopped
     pull_policy: always
     networks:
       - traefik-proxy
+    environment:
+      - SECRET_ENCRYPTION_KEY=e7aaba3cd6f36e5d6a7454aa05366cb484e34c8e792dd1149566f090fbed7aef # <--- can be generated with `openssl rand -hex 32`
+      - PUID=1000
+      - PGID=999
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
-      - {{ volume_base_path }}/homarr/configs:/app/data/configs
-      - {{ volume_base_path }}/homarr/icons:/app/public/icons
-      - {{ volume_base_path }}/homarr/data:/data
+      - ${APPDATA_PATH}/appdata:/appdata
     ports:
-      - '7575:7575'
+      - "7575:7575"
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.homarr.rule=Host(`{{ homarr_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ homarr_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.homarr.rule=Host(`${DOMAIN_NAME}`) || Host(`${LOCAL_DOMAIN_NAME}`)
       - traefik.http.routers.homarr.entrypoints=websecure
       - traefik.http.routers.homarr.tls=true
       - traefik.http.routers.homarr.tls.certresolver=cloudflare
-      - traefik.http.services.homarr.loadbalancer.server.port=8080
+      - traefik.http.services.homarr.loadbalancer.server.port=7575
 networks:
   traefik-proxy:
     external: true
