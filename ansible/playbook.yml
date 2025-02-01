@@ -9,60 +9,7 @@
         changed_services: "{{ lookup('env', 'CHANGED_SERVICES').split(',') }}"
 
     - name: Process each changed service
+      include_tasks: process_service.yml
       loop: "{{ changed_services }}"
       loop_control:
         loop_var: service_name
-      tasks:
-        - name: Define service paths
-          set_fact:
-            apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
-            appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
-
-        - name: Verify required variables
-          assert:
-            that:
-              - domain_name is defined
-            fail_msg: "Required variables are not defined in vault.yml"
-
-        - name: Stop old Docker Compose stacks (if exist)
-          community.docker.docker_container:
-            name: "{{ service_name }}"
-            state: absent
-          ignore_errors: yes # Ignore errors if the stack does not exist
-
-        - name: Create required directories
-          file:
-            path: "{{ item }}"
-            state: directory
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-            mode: "0755"
-          loop:
-            - "{{ apps_path }}"
-            - "{{ appdata_path }}"
-
-        - name: Generate Docker Compose configuration
-          template:
-            src: "../docker/{{ service_name }}/docker-compose.yml"
-            dest: "{{ apps_path }}/docker-compose.yml"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-            mode: "0644"
-
-        - name: Generate environment file
-          template:
-            src: "../docker/{{ service_name }}/.env.j2"
-            dest: "{{ apps_path }}/.env"
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-            mode: "0600"
-
-        - name: Start Docker Compose stack
-          community.docker.docker_compose_v2:
-            project_src: "{{ apps_path }}"
-            files:
-              - docker-compose.yml
-            env_files:
-              - "{{ apps_path }}/.env"
-            state: present
-            pull: always
