@@ -1,4 +1,9 @@
+.env
+
+# Ansible Vault files
+vault_pass.txt
 pass
 password.txt
+
+# Mac OS temp files
 .DS_Store
-.env

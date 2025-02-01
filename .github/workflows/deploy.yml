@@ -1,0 +1,51 @@
+name: Deploy Homelab
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: sudo apt update && sudo apt install -y ansible
+
+      - name: Get changed services
+        id: changed_files
+        run: |
+          CHANGED=$(git diff --name-only HEAD^ HEAD | grep '^docker/' | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')
+          echo "CHANGED_SERVICES=$CHANGED" >> $GITHUB_ENV
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Setup WireGuard VPN
+        run: |
+          sudo apt update && sudo apt install -y wireguard
+          echo "${{ secrets.WIREGUARD_PRIVATE_KEY }}" | sudo tee /etc/wireguard/privatekey > /dev/null
+          sudo chmod 600 /etc/wireguard/privatekey
+
+          sudo ip link add dev wg0 type wireguard
+          sudo ip address add dev wg0 100.64.1.100 peer 100.64.1.1
+          sudo wg set wg0 listen-port 51820 private-key /etc/wireguard/privatekey peer ${{ secrets.WIREGUARD_PEER_PUBLIC_KEY }} allowed-ips 0.0.0.0/0 endpoint ${{ secrets.WIREGUARD_ENDPOINT }}
+          sudo ip link set up dev wg0
+
+      - name: Run Ansible playbook
+        env:
+          CHANGED_SERVICES: ${{ env.CHANGED_SERVICES }}
+        run: |
+          if [[ -n "$CHANGED_SERVICES" ]]; then
+            echo "Deploying changed services: $CHANGED_SERVICES"
+            echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > vault_pass.txt
+            ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --vault-password-file vault_pass.txt
+          else
+            echo "No services changed, skipping deploy."
+          fi

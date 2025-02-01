@@ -1,0 +1,41 @@
+---
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - 30042:8080
+    environment:
+      - DOZZLE_ENABLE_ACTIONS=${DOZZLE_ENABLE_ACTIONS}
+      - DOZZLE_REMOTE_AGENT=192.168.1.239:7007,192.168.1.205:7007,192.168.1.225:7007,192.168.1.164:7007
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 3s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+
+      # External host
+      - traefik.http.routers.dozzle-external.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`)
+      - traefik.http.routers.dozzle-external.entrypoints=websecure
+      - traefik.http.routers.dozzle-external.tls=true
+      - traefik.http.routers.dozzle-external.tls.certresolver=cloudflare
+      - traefik.http.routers.dozzle-external.middlewares=authentik-external@file
+      - traefik.http.services.dozzle-external.loadbalancer.server.port=8080
+
+      # Internal host
+      - traefik.http.routers.dozzle-internal.rule=Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.dozzle-internal.entrypoints=websecure
+      - traefik.http.routers.dozzle-internal.tls=true
+      - traefik.http.routers.dozzle-internal.middlewares=authentik@file
+networks:
+  traefik-proxy:
+    external: true
