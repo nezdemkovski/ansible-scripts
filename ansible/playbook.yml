@@ -6,7 +6,7 @@
   tasks:
     - name: Get list of changed services
       set_fact:
-        changed_services: "{{ lookup('env', 'CHANGED_SERVICES').split(',') }}"
+        changed_services: "{{ lookup('env', 'changed_services').split(',') }}"
 
     - name: Process each changed service
       include_tasks: process_service.yml
