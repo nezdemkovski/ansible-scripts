@@ -1,7 +1,7 @@
 ---
 services:
   beszel:
-    image: henrygd/beszel:latest
+    image: henrygd/beszel:0.9.1
     container_name: beszel
     pull_policy: always
     restart: unless-stopped
@@ -19,7 +19,7 @@ services:
       - ${APPDATA_PATH}:/beszel_data
 
   beszel-agent:
-    image: henrygd/beszel-agent:latest
+    image: henrygd/beszel-agent:0.9.1
     container_name: beszel-agent
     pull_policy: always
     restart: unless-stopped
@@ -29,7 +29,8 @@ services:
     environment:
       PORT: 45876
       # Do not remove quotes around the key
-      KEY: 'UPDATE WITH YOUR PUBLIC KEY (copy from "Add system" dialog)'
+      # KEY: 'UPDATE WITH YOUR PUBLIC KEY (copy from "Add system" dialog)'
+      KEY: ${PUBLIC_KEY}
 networks:
   traefik-proxy:
     external: true
