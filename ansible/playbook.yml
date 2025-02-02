@@ -1,4 +1,4 @@
-- hosts: all
+- hosts: "{{ deploy_targets | dict2items | selectattr('value', 'contains', service_name) | map(attribute='key') | first | default('all') }}"
   become: true
   vars_files:
     - group_vars/all.yml

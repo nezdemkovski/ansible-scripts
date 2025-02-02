@@ -1,7 +1,7 @@
 ---
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:17
     container_name: kestra-postgres
     restart: unless-stopped
     environment:
@@ -19,7 +19,7 @@ services:
       - kestra-net
 
   kestra:
-    image: kestra/kestra:latest
+    image: kestra/kestra:v0.20.14
     container_name: kestra
     pull_policy: always
     restart: unless-stopped
