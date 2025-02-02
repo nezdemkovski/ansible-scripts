@@ -1,0 +1,119 @@
+deploy_targets:
+  server1:
+    - authentik
+    - beszel
+    - cloudflared
+    - dozzle
+    - homarr
+    - infisical
+    - it-tools
+    - kestra
+    - minio
+    - n8n
+    - open-webui
+  server2:
+    - homer
+    - portainer
+    - prometheus
+    - semaphore
+    - traefik
+    - uptime-kuma
+    - watchtower
+
+# General settings for the playbook
+ansible_user: username
+ansible_become_password: secure_password
+ansible_become: true
+ansible_become_method: sudo
+domain_name: example.com
+local_domain_name: home.example.com
+timezone: Europe/Prague
+
+# Traefik
+cf_dns_api_token: 
+cf_ssl_email: user@example.com
+traefik_subdomain: traefik
+traefik_dashboard_basic_auth_users: ""
+
+# Portainer
+portainer_subdomain: portainer
+
+# Homer
+homer_subdomain: homer
+
+# Homarr
+homarr_subdomain: homarr
+
+# n8n
+n8n_subdomain: n8n
+n8n_db_postgres_database: n8n
+n8n_db_postgres_user: n8n
+n8n_db_postgres_password: secure_password
+n8n_db_postgres_schema: public
+n8n_db_postgres_port: 5432
+
+# Cloudflared
+cf_tunnel_token: secure_token
+
+# Prometheus
+prometheus_subdomain: prometheus
+
+# Semaphore UI
+semaphore_subdomain: semaphore
+
+semaphore_postgres_db: semaphore
+semaphore_postgres_user: semaphore
+semaphore_postgres_password: secure_password
+
+semaphore_playbook_path: /tmp/semaphore
+semaphore_admin_password: secure_password
+semaphore_admin_name: username
+semaphore_admin_email: user@example.com
+semaphore_admin: username
+semaphore_access_key_encryption: secure_key
+ansible_host_key_checking: false
+
+# Uptime Kuma
+uptime_kuma_subdomain: uptime-kuma
+
+# Dozzle
+dozzle_subdomain: dozzle
+
+# Authentik
+authentik_subdomain: authentik
+authentik_db_postgres_user: authentik
+authentik_db_postgres_password: secure_password
+authentik_db_postgres_database: authentik
+authentik_secret_key: secure_key
+
+# Kestra
+kestra_subdomain: kestra
+kestra_db_postgres_user: kestra
+kestra_db_postgres_password: secure_password
+kestra_db_postgres_database: kestra
+
+# Open Webui
+open_webui_subdomain: ai
+
+# Infisical
+infisical_subdomain: infisical
+
+# Watchtower
+watchtower_notification_url_telegram: telegram_url
+
+# IT tools
+it_tools_subdomain: it-tools
+
+# Beszel
+beszel_subdomain: beszel
+beszel_public_key: public_key
+
+# Minio
+minio_subdomain: s3
+minio_root_user: username
+minio_root_password: secure_password
+
+# Bolt DIY
+bolt_diy_subdomain: bolt
+huggingface_api_key: 
+ollama_api_base_url: 

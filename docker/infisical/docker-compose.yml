@@ -2,7 +2,7 @@
 services:
   db-migration:
     image: infisical/infisical:latest-postgres
-    container_name: infisical-postgres-migration
+    container_name: infisical-db-migration
     depends_on:
       db:
         condition: service_healthy
@@ -11,8 +11,6 @@ services:
     pull_policy: always
     networks:
       - infisical-net
-    environment:
-      - DB_HOST=infisical-postgres
 
   backend:
     image: infisical/infisical:latest-postgres
@@ -43,7 +41,7 @@ services:
       - traefik-proxy
 
   redis:
-    image: redis
+    image: redis:7-alpine
     container_name: infisical-redis
     env_file: .env
     restart: always
@@ -57,8 +55,8 @@ services:
       - infisical_redis_data:/data
 
   db:
-    container_name: infisical-postgres
     image: postgres:14-alpine
+    container_name: infisical-postgres
     restart: always
     env_file: .env
     volumes:
