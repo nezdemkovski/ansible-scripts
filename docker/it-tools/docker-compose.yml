@@ -1,7 +1,7 @@
 ---
 services:
   it-tools:
-    image: ghcr.io/corentinth/it-tools:latest
+    image: ghcr.io/corentinth/it-tools:2024.10.22-7ca5933
     container_name: it-tools
     pull_policy: always
     restart: unless-stopped

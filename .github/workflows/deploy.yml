@@ -43,15 +43,6 @@ jobs:
           echo "Starting WireGuard..."
           sudo wg-quick up wg0
 
-      - name: Verify WireGuard connection
-        run: |
-          echo "Checking WireGuard status..."
-          sudo wg show
-          echo "Checking network interfaces..."
-          ip a
-          echo "Checking routing table..."
-          ip route
-
       - name: Run Ansible playbook
         if: steps.changed_files.outputs.changed_services != ''
         run: |

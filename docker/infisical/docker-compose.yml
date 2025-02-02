@@ -1,11 +1,11 @@
 ---
 services:
   db-migration:
+    image: infisical/infisical:latest-postgres
     container_name: infisical-postgres-migration
     depends_on:
       db:
         condition: service_healthy
-    image: infisical/infisical:latest-postgres
     env_file: .env
     command: npm run migration:latest
     pull_policy: always
@@ -15,8 +15,8 @@ services:
       - DB_HOST=infisical-postgres
 
   backend:
-    container_name: infisical-backend
     image: infisical/infisical:latest-postgres
+    container_name: infisical-backend
     restart: unless-stopped
     depends_on:
       db:
