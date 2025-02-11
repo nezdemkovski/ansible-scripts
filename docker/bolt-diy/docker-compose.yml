@@ -1,7 +1,7 @@
 ---
 services:
   bolt-diy:
-    image: ghcr.io/stackblitz-labs/bolt.diy:3be18e3
+    image: ghcr.io/stackblitz-labs/bolt.diy:2fe1f1d
     container_name: bolt-diy
     pull_policy: always
     restart: unless-stopped
