@@ -1,0 +1,65 @@
+steps:
+  setup:
+    image: ubuntu:latest
+    commands:
+      - apt-get update && apt-get install -y ansible wireguard resolvconf git openssh-client
+
+  detect_changes:
+    image: alpine/git
+    depends_on: [setup]
+    commands:
+      - git fetch --prune --unshallow
+      - |
+        export CHANGED=$$(git diff --name-only $${CI_COMMIT_BEFORE}..$${CI_COMMIT_SHA} | grep '^docker/' | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$$/')
+      - "echo 'Changed services: $$CHANGED'"
+      - echo "CHANGED_SERVICES=$$CHANGED" > .env
+
+  setup_ssh:
+    image: ubuntu:latest
+    depends_on: [detect_changes]
+    environment:
+      SSH_KEY_FILE: ${SSH_KEY}
+    commands:
+      - mkdir -p ~/.ssh
+      - echo "$$SSH_KEY_FILE" | tr -d '\r' > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - eval "$$(ssh-agent -s)"
+      - ssh-add ~/.ssh/id_rsa
+
+  setup_wireguard:
+    image: ubuntu:latest
+    depends_on: [setup_ssh]
+    environment:
+      WG_CONFIG: ${WIREGUARD_CONFIG}
+    commands:
+      - mkdir -p /etc/wireguard
+      - echo "$$WG_CONFIG" > /etc/wireguard/wg0.conf
+      - chmod 600 /etc/wireguard/wg0.conf
+      - wg-quick up wg0
+
+  deploy:
+    image: ubuntu:latest
+    depends_on: [setup_wireguard]
+    environment:
+      VAULT_PASS: ${VAULT_PASSWORD}
+    commands:
+      - source .env
+      - |
+        if [ -n "$$CHANGED_SERVICES" ]; then
+          echo "Deploying changed services: $$CHANGED_SERVICES"
+          echo "$$VAULT_PASS" > vault_pass.txt
+          
+          for service in $$(echo $$CHANGED_SERVICES | tr ',' ' '); do
+            ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+              --vault-password-file vault_pass.txt \
+              -e "service_name=$$service" \
+              -e ansible_ssh_private_key_file=~/.ssh/id_rsa
+          done
+          rm vault_pass.txt
+        else
+          echo "No services changed, skipping deploy."
+        fi
+
+when:
+  branch: master
+  event: push
