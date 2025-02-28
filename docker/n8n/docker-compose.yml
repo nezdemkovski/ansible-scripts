@@ -24,7 +24,7 @@ services:
       retries: 5
 
   n8n:
-    image: n8nio/n8n:1.80.0
+    image: n8nio/n8n:1.81.2
     container_name: n8n
     pull_policy: always
     restart: unless-stopped
