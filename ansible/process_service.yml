@@ -10,9 +10,11 @@
       - domain_name is defined
     fail_msg: "Required variables are not defined in vault.yml"
 
-- name: Stop old Docker Compose stack (if running)
-  command: docker compose -f {{ apps_path }}/docker-compose.yml down
-  ignore_errors: yes
+- name: Stop old Docker Compose stacks (if exist)
+  community.docker.docker_container:
+    name: "{{ service_name }}"
+    state: absent
+  ignore_errors: yes # Ignore errors if the stack does not exist
 
 - name: Create required directories
   file:

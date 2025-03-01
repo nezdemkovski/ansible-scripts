@@ -70,10 +70,11 @@ Each host entry includes:
 
 The main playbook (`ansible/playbook.yml`) orchestrates the deployment process:
 
-1. Determines the target host based on service mappings
-2. Loads variables from `group_vars/all.yml`
-3. Gets the list of changed services
-4. Processes each changed service using `process_service.yml`
+1. Determines which hosts to run on (runs on all hosts initially)
+2. Loads variables from `group_vars/all.yml` and `group_vars/targets.yml`
+3. Gets the list of changed services from the environment variable
+4. Converts the comma-separated string of services into a proper list
+5. Processes each changed service using `process_service.yml`, but only on hosts that are configured to run that service
 
 ### Service to Host Mapping
 
@@ -147,9 +148,11 @@ These variables are populated from Ansible variables during deployment.
 The deployment process follows these steps:
 
 1. **Change Detection**: The system identifies which services have changed since the last successful deployment
-2. **Target Selection**: For each changed service, it determines which host(s) to deploy to
-3. **Service Deployment**: It processes each service using the steps defined in `process_service.yml`
-4. **Deployment Tracking**: After successful deployment, it updates the deployment marker
+2. **Environment Setup**: The list of changed services is passed to Ansible via an environment variable
+3. **Service List Processing**: The playbook converts the comma-separated string of services into a proper list
+4. **Target Selection**: For each service in the list, it determines which host(s) to deploy to based on the mapping in `targets.yml`
+5. **Service Deployment**: It processes each service using the steps defined in `process_service.yml`, but only on the appropriate hosts
+6. **Deployment Tracking**: After successful deployment, it updates the deployment marker
 
 ## GitHub Actions Workflow
 
