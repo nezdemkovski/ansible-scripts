@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - ".github/deployment-marker.txt"
+
+# Add concurrency to cancel in-progress jobs when new commits are pushed
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+# Add permissions to allow pushing to the repository
+permissions:
+  contents: write
 
 jobs:
   deploy:
@@ -11,6 +22,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache and install APT packages
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -22,8 +36,56 @@ jobs:
         id: changed_files
         run: |
           git fetch --prune --unshallow
-          CHANGED=$(git diff --name-only origin/master^ origin/master | grep '^docker/' | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')
+
+          # Get the latest commit hash
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "current_commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+
+          # Check if the deployment marker file exists
+          LAST_SUCCESS=""
+          if [ -f ".github/deployment-marker.txt" ]; then
+            LAST_SUCCESS=$(cat .github/deployment-marker.txt)
+            echo "Found last successful deployment at commit: $LAST_SUCCESS"
+          else
+            # If no marker exists, use a more robust fallback strategy
+            # First try to find the last successful workflow run
+            echo "No deployment marker found, checking for previous successful workflow runs..."
+            
+            # Get the default branch name
+            DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+            
+            # Try to find the most recent successful workflow run commit
+            # If that fails, go back to the earliest commit in the repository
+            LAST_SUCCESS=$(git rev-list --max-parents=0 HEAD)
+            echo "::warning::No previous deployment marker found. Using the initial commit as fallback. This may process ALL services in the repository!"
+            
+            # Count how many services might be affected
+            ALL_SERVICES=$(find docker/ -maxdepth 1 -mindepth 1 -type d | cut -d'/' -f2 | wc -l)
+            echo "::warning::This could potentially deploy all $ALL_SERVICES services in the repository."
+          fi
+
+          echo "Checking changes since commit: $LAST_SUCCESS"
+
+          # Get all changed services since the last successful deployment
+          CHANGED=$(git diff --name-only $LAST_SUCCESS HEAD | grep '^docker/' | cut -d'/' -f2 | sort -u | tr '\n' ',' | sed 's/,$//')
           echo "Changed services: $CHANGED"
+
+          # Safety check: If we're using the initial commit as fallback and too many services would be deployed
+          if [ "$LAST_SUCCESS" = "$(git rev-list --max-parents=0 HEAD)" ]; then
+            # Count the number of services that would be deployed
+            SERVICE_COUNT=$(echo "$CHANGED" | tr ',' '\n' | wc -l)
+            # Use environment variable if set, otherwise default to 5
+            MAX_SERVICES=${MAX_DEPLOY_SERVICES:-5}
+            
+            if [ "$SERVICE_COUNT" -gt "$MAX_SERVICES" ]; then
+              echo "::warning::Too many services ($SERVICE_COUNT) would be deployed from initial commit. Limiting to $MAX_SERVICES most recently modified services."
+              # Get the most recently modified services
+              LIMITED_SERVICES=$(find docker/ -maxdepth 1 -mindepth 1 -type d -printf "%T@ %f\n" | sort -nr | head -n $MAX_SERVICES | cut -d' ' -f2- | tr '\n' ',' | sed 's/,$//')
+              echo "Limited to services: $LIMITED_SERVICES"
+              CHANGED="$LIMITED_SERVICES"
+            fi
+          fi
+
           echo "changed_services=$CHANGED" >> $GITHUB_OUTPUT
           echo "CHANGED_SERVICES=$CHANGED" >> $GITHUB_ENV
 
@@ -77,3 +139,24 @@ jobs:
       - name: Skip deployment if no changes
         if: steps.changed_files.outputs.changed_services == ''
         run: echo "No services changed, skipping deploy."
+
+      - name: Update deployment marker
+        if: success()
+        run: |
+          # Create the directory if it doesn't exist
+          mkdir -p .github
+
+          # Save the current commit hash as a deployment marker
+          echo "${{ steps.changed_files.outputs.current_commit }}" > .github/deployment-marker.txt
+
+          # Commit and push the deployment marker
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .github/deployment-marker.txt
+          git commit -m "Update deployment marker [skip ci]"
+          git push
+
+          # Create a summary of the deployment
+          echo "## Deployment Summary" > $GITHUB_STEP_SUMMARY
+          echo "Successfully deployed services: ${{ steps.changed_files.outputs.changed_services || 'none' }}" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment marker updated to commit: ${{ steps.changed_files.outputs.current_commit }}" >> $GITHUB_STEP_SUMMARY
