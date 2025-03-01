@@ -35,7 +35,8 @@ jobs:
       - name: Get changed services
         id: changed_files
         run: |
-          git fetch --prune --unshallow
+          # Fetch all history if needed (will not fail if already complete)
+          git fetch --prune || true
 
           # Get the latest commit hash
           CURRENT_COMMIT=$(git rev-parse HEAD)
