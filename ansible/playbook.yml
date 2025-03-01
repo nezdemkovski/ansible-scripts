@@ -12,4 +12,4 @@
       include_tasks: process_service.yml
       loop: "{{ changed_services }}"
       loop_control:
-        loop_var: service_name
+        loop_var: current_service

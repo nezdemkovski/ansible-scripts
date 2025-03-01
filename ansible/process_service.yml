@@ -1,7 +1,8 @@
 - name: Define service paths
   set_fact:
-    apps_path: "/home/{{ ansible_user }}/apps/{{ service_name }}"
-    appdata_path: "/home/{{ ansible_user }}/appdata/{{ service_name }}"
+    apps_path: "/home/{{ ansible_user }}/apps/{{ current_service }}"
+    appdata_path: "/home/{{ ansible_user }}/appdata/{{ current_service }}"
+    service_name: "{{ current_service }}"
 
 - name: Verify required variables
   assert:
