@@ -30,6 +30,8 @@ The workflow automatically detects changes to service definitions and deploys on
 .
 ├── ansible/                  # Ansible configuration files
 │   ├── group_vars/           # Variables for groups of hosts
+│   │   ├── all.yml           # Common variables (encrypted)
+│   │   └── targets.yml       # Service to host mapping (not encrypted)
 │   ├── inventory.ini         # Host inventory file
 │   ├── pass                  # Vault password file (encrypted)
 │   ├── playbook.yml          # Main Ansible playbook
@@ -72,6 +74,24 @@ The main playbook (`ansible/playbook.yml`) orchestrates the deployment process:
 2. Loads variables from `group_vars/all.yml`
 3. Gets the list of changed services
 4. Processes each changed service using `process_service.yml`
+
+### Service to Host Mapping
+
+The `ansible/group_vars/targets.yml` file defines which services should be deployed to which hosts:
+
+```yaml
+deploy_targets:
+  server1:
+    - authentik
+    - beszel
+    - open-webui
+    # ... other services
+  server2:
+    - service1
+    - service2
+```
+
+This mapping is used to determine which host to deploy each service to. When a service is being deployed, the playbook looks up the service name in this mapping and selects the appropriate host.
 
 ### Service Processing
 

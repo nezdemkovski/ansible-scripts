@@ -1,0 +1,17 @@
+# Service to host mapping
+# This file defines which services should be deployed to which hosts
+
+deploy_targets:
+  helios:
+    - authentik
+    - beszel
+    - bolt-diy
+    - cloudflared
+    - dozzle
+    - homarr
+    - infisical
+    - it-tools
+    - kestra
+    - minio
+    - n8n
+    - open-webui

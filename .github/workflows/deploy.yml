@@ -129,12 +129,14 @@ jobs:
           echo "Deploying changed services: ${{ steps.changed_files.outputs.changed_services }}"
           echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > vault_pass.txt
 
-          for service in $(echo ${{ steps.changed_files.outputs.changed_services }} | tr ',' ' '); do
-            ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
-              --vault-password-file vault_pass.txt \
-              -e "service_name=$service" \
-              -e ansible_ssh_private_key_file=~/.ssh/id_rsa
-          done
+          # Set the environment variable for changed services
+          export CHANGED_SERVICES="${{ steps.changed_files.outputs.changed_services }}"
+
+          # Run the playbook with the changed_services variable passed directly
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+            --vault-password-file vault_pass.txt \
+            -e ansible_ssh_private_key_file=~/.ssh/id_rsa
+
           rm vault_pass.txt
 
       - name: Skip deployment if no changes
