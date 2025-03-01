@@ -43,6 +43,23 @@ jobs:
           echo "Starting WireGuard..."
           sudo wg-quick up wg0
 
+      - name: Add SSH host keys
+        run: |
+          # Extract hosts from inventory and add their SSH keys to known_hosts
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+
+          # Parse inventory file to get all hosts
+          HOSTS=$(grep -oP 'ansible_host=\K[0-9.]+' ansible/inventory.ini)
+
+          # Add each host's SSH key to known_hosts
+          for HOST in $HOSTS; do
+            echo "Adding host key for $HOST"
+            ssh-keyscan -H $HOST >> ~/.ssh/known_hosts 2>/dev/null || echo "Warning: Could not get host key for $HOST"
+          done
+
+          chmod 600 ~/.ssh/known_hosts
+
       - name: Run Ansible playbook
         if: steps.changed_files.outputs.changed_services != ''
         run: |
