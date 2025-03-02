@@ -1,0 +1,67 @@
+http:
+  routers:
+    supabase-studio:
+      rule: "Host(`studio.nezdemkovski.cloud`) || Host(`studio.helios.home.nezdemkovski.cloud`)"
+      service: supabase-studio
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+    supabase-api:
+      rule: "Host(`api.nezdemkovski.cloud`) || Host(`api.helios.home.nezdemkovski.cloud`)"
+      service: supabase-api
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+    supabase-auth:
+      rule: "Host(`auth.nezdemkovski.cloud`) || Host(`auth.helios.home.nezdemkovski.cloud`)"
+      service: supabase-auth
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+    supabase-realtime:
+      rule: "Host(`realtime.nezdemkovski.cloud`) || Host(`realtime.helios.home.nezdemkovski.cloud`)"
+      service: supabase-realtime
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+    supabase-storage:
+      rule: "Host(`storage.nezdemkovski.cloud`) || Host(`storage.helios.home.nezdemkovski.cloud`)"
+      service: supabase-storage
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+  services:
+    supabase-studio:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.228:8000"  # Studio слушает 3000
+
+    supabase-api:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.228:3000"  # Kong API слушает 8000
+
+    supabase-auth:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.228:9999"  # Auth сервис
+
+    supabase-realtime:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.228:4000"  # Realtime сервис
+
+    supabase-storage:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.228:5000"  # Storage сервис

@@ -1,0 +1,14 @@
+http:
+  routers:
+    qdrant:
+      rule: Host(`{{ qdrant_subdomain }}.{{ domain_name }}`) || Host(`{{ qdrant_subdomain }}.{{ local_domain_name }}`)
+      service: qdrant
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+  services:
+    qdrant:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.136:6333

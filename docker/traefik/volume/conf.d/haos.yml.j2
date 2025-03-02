@@ -1,0 +1,14 @@
+http:
+  routers:
+    haos:
+      rule: Host(`{{ haos_subdomain }}.{{ domain_name }}`) || Host(`{{ haos_subdomain }}.{{ local_domain_name }}`)
+      service: haos
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+  services:
+    haos:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.104:8123

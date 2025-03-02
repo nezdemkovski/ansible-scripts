@@ -1,0 +1,14 @@
+http:
+  routers:
+    wireguard:
+      rule: Host(`{{ wireguard_subdomain }}.{{ domain_name }}`) || Host(`{{ wireguard_subdomain }}.{{ local_domain_name }}`)
+      service: wireguard
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+  services:
+    wireguard:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.197:10086

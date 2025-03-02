@@ -15,3 +15,5 @@ deploy_targets:
     - minio
     - n8n
     - open-webui
+    - portainer
+    - traefik

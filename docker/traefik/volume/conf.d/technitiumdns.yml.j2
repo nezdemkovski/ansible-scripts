@@ -1,0 +1,14 @@
+http:
+  routers:
+    technitiumdns:
+      rule: Host(`{{ technitiumdns_subdomain }}.{{ domain_name }}`) || Host(`{{ technitiumdns_subdomain }}.{{ local_domain_name }}`)
+      service: technitiumdns
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+  services:
+    technitiumdns:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.125:5380

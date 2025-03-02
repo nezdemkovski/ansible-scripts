@@ -102,9 +102,37 @@ For each service, the system:
 2. Verifies required variables
 3. Stops any existing Docker containers
 4. Creates required directories
-5. Generates Docker Compose configuration from templates
-6. Generates environment files from templates
-7. Starts the Docker Compose stack
+5. Processes volume files (if present):
+   - Processes any .j2 template files found in the volume directory
+   - Copies all non-template files from the volume directory to the appdata directory
+6. Generates Docker Compose configuration from templates
+7. Generates environment files from templates
+8. Starts the Docker Compose stack
+
+### Volume Files
+
+If a service has a `volume` directory (e.g., `docker/traefik/volume/`), the system will:
+
+1. Process any `.j2` template files found in the volume directory, applying Ansible variables
+2. Copy all non-template files to the service's appdata directory (e.g., `/home/user/appdata/traefik/`)
+
+This allows you to include configuration files, certificates, and other static files that should be placed in the service's data directory.
+
+You can control the file copying behavior with the following variables:
+
+- `overwrite_volume_files`: Controls whether existing files should be overwritten (defaults to `true`)
+
+Example volume directory structure:
+
+```
+docker/
+  traefik/
+    volume/
+      config.yml          # Regular file, will be copied as-is
+      certificates/       # Directory with files, will be copied recursively
+        cert.pem
+      dynamic_conf.yml.j2 # Template file, will be processed with Ansible variables
+```
 
 ## Service Configuration
 

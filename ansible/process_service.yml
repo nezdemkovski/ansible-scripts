@@ -27,40 +27,6 @@
     - "{{ apps_path }}"
     - "{{ appdata_path }}"
 
-- name: Check if volume directory exists for the service
-  stat:
-    path: "../docker/{{ service_name }}/volume"
-  register: volume_dir
-
-- name: Find all .j2 template files in volume directory
-  find:
-    paths: "../docker/{{ service_name }}/volume"
-    patterns: "*.j2"
-    recurse: yes
-  register: j2_templates
-  when: volume_dir.stat.exists and volume_dir.stat.isdir
-
-- name: Process .j2 template files from volume directory
-  template:
-    src: "{{ item.path }}"
-    dest: "{{ appdata_path }}/{{ item.path | regex_replace('^.*?volume/', '') | regex_replace('\.j2$', '') }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
-  with_items: "{{ j2_templates.files | default([]) }}"
-  when: volume_dir.stat.exists and volume_dir.stat.isdir and j2_templates.matched | default(0) > 0
-
-- name: Copy non-j2 volume files to appdata directory if volume directory exists
-  copy:
-    src: "../docker/{{ service_name }}/volume/"
-    dest: "{{ appdata_path }}/"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: preserve
-    force: "{{ overwrite_volume_files | default(true) }}"
-    exclude: "*.j2"
-  when: volume_dir.stat.exists and volume_dir.stat.isdir
-
 - name: Generate Docker Compose configuration
   template:
     src: "../docker/{{ service_name }}/docker-compose.yml"
@@ -76,6 +42,68 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: "0600"
+
+- name: Check if volume directory exists for the service
+  stat:
+    path: "../docker/{{ service_name }}/volume"
+  register: volume_dir
+
+- name: Debug volume directory status
+  debug:
+    msg: "Volume directory exists: {{ volume_dir.stat.exists }}, is directory: {{ volume_dir.stat.isdir | default('unknown') }}"
+
+- name: Find all files in volume directory (if exists)
+  find:
+    paths: "../docker/{{ service_name }}/volume"
+    file_type: file
+  register: volume_files
+  when: volume_dir.stat.exists and volume_dir.stat.isdir is defined and volume_dir.stat.isdir
+
+- name: Debug found files in volume
+  debug:
+    msg: "Found files: {{ volume_files.files | map(attribute='path') | list }}"
+  when: volume_files.files is defined and volume_files.files | length > 0
+
+- name: Copy non-template volume files to appdata
+  copy:
+    src: "{{ file_item }}"
+    dest: "{{ appdata_path }}/{{ file_item | basename }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  loop: "{{ volume_files.files | default([]) | map(attribute='path') | list }}"
+  loop_control:
+    loop_var: file_item
+  when: file_item is not search("\\.j2$")
+  ignore_errors: yes
+
+- name: Debug copied non-template files
+  debug:
+    msg: "Copied non-template file: {{ file_item | basename }}"
+  loop: "{{ volume_files.files | default([]) | map(attribute='path') | list }}"
+  loop_control:
+    loop_var: file_item
+  when: file_item is not search("\\.j2$")
+
+- name: Process Jinja2 templates in volume and save to appdata
+  template:
+    src: "{{ template_item }}"
+    dest: "{{ appdata_path }}/{{ template_item | basename | regex_replace('\\.j2$', '') }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  loop: "{{ volume_files.files | default([]) | map(attribute='path') | list }}"
+  loop_control:
+    loop_var: template_item
+  when: template_item is search("\\.j2$")
+
+- name: Debug processed Jinja2 templates
+  debug:
+    msg: "Processed Jinja2 template: {{ template_item | basename | regex_replace('\\.j2$', '') }}"
+  loop: "{{ volume_files.files | default([]) | map(attribute='path') | list }}"
+  loop_control:
+    loop_var: template_item
+  when: template_item is search("\\.j2$")
 
 - name: Start Docker Compose stack
   community.docker.docker_compose_v2:

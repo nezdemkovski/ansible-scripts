@@ -1,0 +1,12 @@
+tcp:
+  routers:
+    redis:
+      rule: "HostSNI(`*`)" # Redis does not support SNI, so `*`
+      entryPoints:
+        - redis
+      service: redis
+  services:
+    redis:
+      loadBalancer:
+        servers:
+          - address: "192.168.1.192:6379"

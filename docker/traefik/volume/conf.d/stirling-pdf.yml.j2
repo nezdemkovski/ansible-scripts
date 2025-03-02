@@ -1,0 +1,14 @@
+http:
+  routers:
+    stirling-pdf:
+      rule: Host(`{{ stirling_pdf_subdomain }}.{{ domain_name }}`) || Host(`{{ stirling_pdf_subdomain }}.{{ local_domain_name }}`)
+      service: stirling-pdf
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+  services:
+    stirling-pdf:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.232:8080
