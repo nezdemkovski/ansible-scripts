@@ -1,25 +1,3 @@
-deploy_targets:
-  server1:
-    - authentik
-    - beszel
-    - cloudflared
-    - dozzle
-    - homarr
-    - infisical
-    - it-tools
-    - kestra
-    - minio
-    - n8n
-    - open-webui
-  server2:
-    - homer
-    - portainer
-    - prometheus
-    - semaphore
-    - traefik
-    - uptime-kuma
-    - watchtower
-
 # General settings for the playbook
 ansible_user: username
 ansible_become_password: secure_password
