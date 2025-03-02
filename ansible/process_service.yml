@@ -27,6 +27,40 @@
     - "{{ apps_path }}"
     - "{{ appdata_path }}"
 
+- name: Check if volume directory exists for the service
+  stat:
+    path: "../docker/{{ service_name }}/volume"
+  register: volume_dir
+
+- name: Find all .j2 template files in volume directory
+  find:
+    paths: "../docker/{{ service_name }}/volume"
+    patterns: "*.j2"
+    recurse: yes
+  register: j2_templates
+  when: volume_dir.stat.exists and volume_dir.stat.isdir
+
+- name: Process .j2 template files from volume directory
+  template:
+    src: "{{ item.path }}"
+    dest: "{{ appdata_path }}/{{ item.path | regex_replace('^.*?volume/', '') | regex_replace('\.j2$', '') }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  with_items: "{{ j2_templates.files | default([]) }}"
+  when: volume_dir.stat.exists and volume_dir.stat.isdir and j2_templates.matched | default(0) > 0
+
+- name: Copy non-j2 volume files to appdata directory if volume directory exists
+  copy:
+    src: "../docker/{{ service_name }}/volume/"
+    dest: "{{ appdata_path }}/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: preserve
+    force: "{{ overwrite_volume_files | default(true) }}"
+    exclude: "*.j2"
+  when: volume_dir.stat.exists and volume_dir.stat.isdir
+
 - name: Generate Docker Compose configuration
   template:
     src: "../docker/{{ service_name }}/docker-compose.yml"
