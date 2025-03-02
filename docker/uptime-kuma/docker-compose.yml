@@ -1,19 +1,19 @@
 ---
 services:
   uptime-kuma:
-    image: "louislam/uptime-kuma:1"
+    image: louislam/uptime-kuma:1.23.16
     container_name: uptime-kuma
     pull_policy: always
     restart: unless-stopped
-    ports:
-      - 30015:3001
+    # ports:
+    #   - 3001:3001
     networks:
       - traefik-proxy
     volumes:
-      - {{ volume_base_path }}/uptime-kuma:/app/data
+      - ${APPDATA_PATH}:/app/data
     labels:
       - traefik.enable=true
-      - "traefik.http.routers.uptime-kuma.rule=Host(`{{ uptime_kuma_subdomain }}.{{ domain_name }}`){% if local_domain_name %} || Host(`{{ uptime_kuma_subdomain }}.{{ local_domain_name }}`){% endif %}"
+      - traefik.http.routers.uptime-kuma.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
       - traefik.http.routers.uptime-kuma.entrypoints=websecure
       - traefik.http.routers.uptime-kuma.tls=true
       - traefik.http.routers.uptime-kuma.tls.certresolver=cloudflare
