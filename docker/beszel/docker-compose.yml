@@ -1,7 +1,7 @@
 ---
 services:
   beszel:
-    image: henrygd/beszel:0.10.0
+    image: henrygd/beszel:0.10.1
     container_name: beszel
     pull_policy: always
     restart: unless-stopped
