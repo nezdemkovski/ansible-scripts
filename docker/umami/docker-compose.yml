@@ -1,0 +1,58 @@
+---
+services:
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-v2.17.0
+    container_name: umami
+    # ports:
+    #   - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${UMAMI_POSTGRES_USER}:${UMAMI_POSTGRES_PASSWORD}@db:5432/${UMAMI_POSTGRES_DB}
+      - DATABASE_TYPE=postgresql
+      - APP_SECRET=${UMAMI_APP_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - umami-net
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.umami.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.umami.entrypoints=websecure
+      - traefik.http.routers.umami.tls=true
+      - traefik.http.routers.umami.tls.certresolver=cloudflare
+      - traefik.http.services.umami.loadbalancer.server.port=3000
+
+  db:
+    image: postgres:17
+    container_name: umami-postgres
+    environment:
+      - POSTGRES_DB=${UMAMI_POSTGRES_DB}
+      - POSTGRES_USER=${UMAMI_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${UMAMI_POSTGRES_PASSWORD}
+    volumes:
+      - umami-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${UMAMI_POSTGRES_DB} -U $${UMAMI_POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - umami-net
+
+volumes:
+  umami-postgres-data:
+
+networks:
+  umami-net:
+    driver: bridge
+  traefik-proxy:
+    external: true
