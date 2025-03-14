@@ -2,7 +2,7 @@
 services:
   homarr:
     container_name: homarr
-    image: ghcr.io/homarr-labs/homarr:v1.10.0
+    image: ghcr.io/homarr-labs/homarr:v1.11.0
     restart: unless-stopped
     pull_policy: always
     networks:
