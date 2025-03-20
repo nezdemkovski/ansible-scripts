@@ -4,7 +4,7 @@ services:
     image: portainer/portainer-ce:2.28.1
     container_name: portainer
     pull_policy: always
-    ports:
+    # ports:
       # - 30011:9000
       # - 9443:9443
       # - 8010:8000
