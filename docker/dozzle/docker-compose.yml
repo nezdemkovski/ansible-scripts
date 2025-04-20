@@ -1,7 +1,7 @@
 ---
 services:
   dozzle:
-    image: amir20/dozzle:v8.12.9
+    image: amir20/dozzle:v8.12.10
     container_name: dozzle
     restart: unless-stopped
     pull_policy: always
