@@ -5,8 +5,6 @@ image:
 
 resources: {}
 
-puid: 1000
-pgid: 999
 secretEncryptionKey: "e7aaba3cd6f36e5d6a7454aa05366cb484e34c8e792dd1149566f090fbed7aef"
 
 volumes:
@@ -15,8 +13,8 @@ volumes:
 
 traefik:
   enabled: true
-  domainName: homarr.example.com
-  localDomainName: homarr.local
+  domainName: homarr-k8s.nezdemkovski.cloud
+  localDomainName: homarr-k8s.home.nezdemkovski.cloud
   certResolver: cloudflare
   entryPoint: websecure
   subdomain: homarr
