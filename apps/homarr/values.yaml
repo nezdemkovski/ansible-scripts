@@ -1,0 +1,25 @@
+image:
+  repository: ghcr.io/homarr-labs/homarr
+  tag: v1.11.0
+  pullPolicy: Always
+
+resources: {}
+
+puid: 1000
+pgid: 999
+secretEncryptionKey: "e7aaba3cd6f36e5d6a7454aa05366cb484e34c8e792dd1149566f090fbed7aef"
+
+volumes:
+  appdataPath: /mnt/appdata/homarr
+  enableDockerSocket: true
+
+traefik:
+  enabled: true
+  domainName: homarr.example.com
+  localDomainName: homarr.local
+  certResolver: cloudflare
+  entryPoint: websecure
+  subdomain: homarr
+
+service:
+  port: 7575

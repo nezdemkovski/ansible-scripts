@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "homarr.fullname" . }}
+  labels:
+    app: {{ include "homarr.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "homarr.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "homarr.name" . }}
+    spec:
+      containers:
+        - name: homarr
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: SECRET_ENCRYPTION_KEY
+              value: {{ .Values.secretEncryptionKey | quote }}
+            - name: PUID
+              value: "{{ .Values.puid }}"
+            - name: PGID
+              value: "{{ .Values.pgid }}"
+          volumeMounts:
+            - name: appdata
+              mountPath: /appdata
+            {{- if .Values.volumes.enableDockerSocket }}
+            - name: dockersock
+              mountPath: /var/run/docker.sock
+            {{- end }}
+      volumes:
+        - name: appdata
+          hostPath:
+            path: {{ .Values.volumes.appdataPath }}
+        {{- if .Values.volumes.enableDockerSocket }}
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock
+        {{- end }}

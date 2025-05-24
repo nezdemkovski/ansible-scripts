@@ -1,0 +1,25 @@
+{{- if .Values.traefik.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "homarr.fullname" . }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: {{ .Values.traefik.entryPoint }}
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: {{ .Values.traefik.certResolver }}
+spec:
+  rules:
+    - host: {{ .Values.traefik.domainName }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "homarr.fullname" . }}
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - {{ .Values.traefik.domainName }}
+{{- end }}
