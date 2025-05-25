@@ -1,0 +1,6 @@
+apiVersion: v2
+name: traefik
+description: A Traefik Helm chart
+type: application
+version: 1.0.0
+appVersion: "3.4.0"
