@@ -104,7 +104,7 @@ services:
       - traefik-proxy
 
   authentik-outpost:
-    image: ghcr.io/goauthentik/proxy:2025.4
+    image: ghcr.io/goauthentik/proxy:2025.6
     container_name: authentik-outpost
     restart: unless-stopped
     ports:
