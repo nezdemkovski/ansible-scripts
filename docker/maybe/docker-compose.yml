@@ -1,0 +1,96 @@
+x-db-env: &db_env
+  POSTGRES_USER: ${POSTGRES_USER:-maybe_user}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maybe_password}
+  POSTGRES_DB: ${POSTGRES_DB:-maybe_production}
+
+x-rails-env: &rails_env
+  <<: *db_env
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:-a7523c3d0ae56415046ad8abae168d71074a79534a7062258f8d1d51ac2f76d3c3bc86d86b6b0b307df30d9a6a90a2066a3fa9e67c5e6f374dbd7dd4e0778e13}
+  SELF_HOSTED: "true"
+  RAILS_FORCE_SSL: "false"
+  RAILS_ASSUME_SSL: "false"
+  DB_HOST: db
+  DB_PORT: 5432
+  REDIS_URL: redis://redis:6379/1
+  # NOTE: enabling OpenAI will incur costs when you use AI-related features in the app (chat, rules).  Make sure you have set appropriate spend limits on your account before adding this.
+  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN}
+
+services:
+  web:
+    image: ghcr.io/maybe-finance/maybe:0.5.0
+    container_name: maybe-web
+    volumes:
+      - ${APPDATA_PATH}/rails/storage
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      <<: *rails_env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - maybe_net
+      - traefik-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.maybe.rule=Host(`${SUBDOMAIN_NAME}.${DOMAIN_NAME}`) || Host(`${SUBDOMAIN_NAME}.${LOCAL_DOMAIN_NAME}`)
+      - traefik.http.routers.maybe.entrypoints=websecure
+      - traefik.http.routers.maybe.tls=true
+      - traefik.http.routers.maybe.tls.certresolver=cloudflare
+      - traefik.http.services.maybe.loadbalancer.server.port=3000
+
+  worker:
+    image: ghcr.io/maybe-finance/maybe:0.5.0
+    container_name: maybe-worker
+    command: bundle exec sidekiq
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *rails_env
+    networks:
+      - maybe_net
+
+  db:
+    image: postgres:16
+    container_name: maybe-db
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      <<: *db_env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maybe_net
+
+  redis:
+    image: redis:latest
+    container_name: maybe-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maybe_net
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  maybe_net:
+    driver: bridge
+  traefik-proxy:
+    external: true
