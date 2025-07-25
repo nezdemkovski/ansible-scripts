@@ -17,7 +17,7 @@ x-rails-env: &rails_env
 
 services:
   web:
-    image: ghcr.io/maybe-finance/maybe:0.5.0
+    image: ghcr.io/maybe-finance/maybe:0.6.0
     container_name: maybe-web
     volumes:
       - ${APPDATA_PATH}/rails/storage
@@ -43,7 +43,7 @@ services:
       - traefik.http.services.maybe.loadbalancer.server.port=3000
 
   worker:
-    image: ghcr.io/maybe-finance/maybe:0.5.0
+    image: ghcr.io/maybe-finance/maybe:0.6.0
     container_name: maybe-worker
     command: bundle exec sidekiq
     restart: unless-stopped
