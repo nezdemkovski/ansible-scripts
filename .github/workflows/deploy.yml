@@ -26,11 +26,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache and install APT packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: ansible wireguard resolvconf
-          version: 1.0 # Update this when the package list changes
+      - name: Install required packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible wireguard-tools resolvconf
 
       - name: Get changed services
         id: changed_files
@@ -51,15 +50,15 @@ jobs:
             # If no marker exists, use a more robust fallback strategy
             # First try to find the last successful workflow run
             echo "No deployment marker found, checking for previous successful workflow runs..."
-            
+
             # Get the default branch name
             DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
-            
+
             # Try to find the most recent successful workflow run commit
             # If that fails, go back to the earliest commit in the repository
             LAST_SUCCESS=$(git rev-list --max-parents=0 HEAD)
             echo "::warning::No previous deployment marker found. Using the initial commit as fallback. This may process ALL services in the repository!"
-            
+
             # Count how many services might be affected
             ALL_SERVICES=$(find docker/ -maxdepth 1 -mindepth 1 -type d | cut -d'/' -f2 | wc -l)
             echo "::warning::This could potentially deploy all $ALL_SERVICES services in the repository."
@@ -77,7 +76,7 @@ jobs:
             SERVICE_COUNT=$(echo "$CHANGED" | tr ',' '\n' | wc -l)
             # Use environment variable if set, otherwise default to 5
             MAX_SERVICES=${MAX_DEPLOY_SERVICES:-5}
-            
+
             if [ "$SERVICE_COUNT" -gt "$MAX_SERVICES" ]; then
               echo "::warning::Too many services ($SERVICE_COUNT) would be deployed from initial commit. Limiting to $MAX_SERVICES most recently modified services."
               # Get the most recently modified services
