@@ -58,13 +58,13 @@ The `ansible/inventory.ini` file defines the hosts where services will be deploy
 [all]
 
 [servers]
-helios ansible_host=192.168.1.105
+helios ansible_host=10.77.77.134
 ```
 
 Each host entry includes:
 
 - Hostname (e.g., `helios`)
-- IP address (`ansible_host=192.168.1.105`)
+- IP address (`ansible_host=10.77.77.134`)
 
 ### Playbook Structure
 
