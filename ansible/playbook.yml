@@ -1,5 +1,5 @@
 - hosts: all
-  become: true
+  become: false
   vars_files:
     - group_vars/all.yml
     - group_vars/targets.yml
