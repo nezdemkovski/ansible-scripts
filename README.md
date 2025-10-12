@@ -50,6 +50,28 @@ The workflow automatically detects changes to service definitions and deploys on
 
 ## Ansible Setup
 
+### Managing Encrypted Variables
+
+The `ansible/group_vars/all.yml` file contains sensitive variables (passwords, API keys, etc.) and is encrypted using Ansible Vault.
+
+**To decrypt the file for editing:**
+
+```bash
+ansible-vault decrypt ansible/group_vars/all.yml --vault-password-file ansible/pass
+```
+
+**To encrypt the file after editing:**
+
+```bash
+ansible-vault encrypt ansible/group_vars/all.yml --vault-password-file ansible/pass
+```
+
+**To edit the file directly (without manual decrypt/encrypt):**
+
+```bash
+ansible-vault edit ansible/group_vars/all.yml --vault-password-file ansible/pass
+```
+
 ### Inventory Configuration
 
 The `ansible/inventory.ini` file defines the hosts where services will be deployed:
