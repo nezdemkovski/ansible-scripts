@@ -56,7 +56,7 @@ services:
       - maybe_net
 
   db:
-    image: postgres:16
+    image: postgres:18
     container_name: maybe-db
     restart: unless-stopped
     volumes:
