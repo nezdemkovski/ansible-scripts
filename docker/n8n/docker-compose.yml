@@ -1,7 +1,7 @@
 ---
 services:
   n8n_postgres:
-    image: postgres:17
+    image: postgres:18
     container_name: n8n_postgres
     pull_policy: always
     restart: unless-stopped

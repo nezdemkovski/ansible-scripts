@@ -31,7 +31,7 @@ services:
       - traefik.http.services.umami.loadbalancer.server.port=3000
 
   db:
-    image: postgres:17
+    image: postgres:18
     container_name: umami-postgres
     environment:
       - POSTGRES_DB=${UMAMI_POSTGRES_DB}
