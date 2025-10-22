@@ -19,7 +19,7 @@ services:
       - kestra-net
 
   kestra:
-    image: kestra/kestra:v1.0.6
+    image: kestra/kestra:v1.0.7
     container_name: kestra
     pull_policy: always
     restart: unless-stopped
