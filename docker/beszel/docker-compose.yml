@@ -19,7 +19,7 @@ services:
       - ${APPDATA_PATH}:/beszel_data
 
   beszel-agent:
-    image: henrygd/beszel-agent:0.15.0
+    image: henrygd/beszel-agent:0.16.1
     container_name: beszel-agent
     pull_policy: always
     restart: unless-stopped
