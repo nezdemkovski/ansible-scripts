@@ -1,7 +1,7 @@
 ---
 services:
   app:
-    image: portainer/portainer-ce:2.35.0
+    image: portainer/portainer-ce:2.36.0
     container_name: portainer
     pull_policy: always
     # ports:
